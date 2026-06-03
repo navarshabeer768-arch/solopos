@@ -665,8 +665,364 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
 <div id="toast-root"></div>
 
 <script>
-// ─── DATA ───────────────────────────────────────────────────────
+// ─── SUPABASE CONFIG ─────────────────────────────────────────────
+const SUPABASE_URL  = 'https://nglisiokqrvbbyezvhsd.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5nbGlzaW9rcXJ2YmJ5ZXp2aHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0OTYyOTAsImV4cCI6MjA5NjA3MjI5MH0.6UhdkumknP-PJHR_iDH2E_aqFtAhA20TFAaVpiTYJZA';
+const SALON_ID      = '00000000-0000-0000-0000-000000000001';
+
+const supa = {
+  async get(table, params={}) {
+    let url = `${SUPABASE_URL}/rest/v1/${table}?salon_id=eq.${SALON_ID}`;
+    if (params.select) url += `&select=${params.select}`;
+    if (params.filter) url += `&${params.filter}`;
+    if (params.order)  url += `&order=${params.order}`;
+    if (params.limit)  url += `&limit=${params.limit}`;
+    const r = await fetch(url, {headers: supa._h()});
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  },
+  async insert(table, data) {
+    const body = Array.isArray(data) ? data : {...data, salon_id: SALON_ID};
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: {...supa._h(), 'Prefer': 'return=representation'},
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  },
+  async update(table, id, data) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {...supa._h(), 'Prefer': 'return=representation'},
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  },
+  async del(table, id) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}&salon_id=eq.${SALON_ID}`, {
+      method: 'DELETE', headers: supa._h()
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return true;
+  },
+  _h() {
+    return {
+      'apikey': SUPABASE_ANON,
+      'Authorization': `Bearer ${SUPABASE_ANON}`,
+      'Content-Type': 'application/json',
+    };
+  }
+};
+
+let supaConnected = false;
+let realtimeWS    = null;
+
+async function initSupabase() {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/salons?id=eq.${SALON_ID}`, {headers: supa._h()});
+    const salons = await r.json();
+    if (salons && salons.length > 0) {
+      supaConnected = true;
+      console.log('Supabase connected:', salons[0].name);
+      await loadAllFromSupabase();
+      startRealtimeBookings();
+    }
+  } catch(e) {
+    console.warn('Supabase offline, using localStorage:', e.message);
+    supaConnected = false;
+  }
+}
+
+async function loadAllFromSupabase() {
+  try {
+    const [svcs,cats,stf,custs,appts,sals,invs,exps,att,purs,sups,breqs] = await Promise.all([
+      supa.get('services',  {order:'sort_order.asc,name.asc'}),
+      supa.get('service_categories', {order:'sort_order.asc'}),
+      supa.get('staff',     {order:'name.asc'}),
+      supa.get('customers', {order:'name.asc', limit:1000}),
+      supa.get('appointments', {order:'date.desc', limit:500}),
+      supa.get('sales',     {order:'created_at.desc', limit:300}),
+      supa.get('products',  {order:'name.asc'}),
+      supa.get('expenses',  {order:'expense_date.desc', limit:200}),
+      supa.get('attendance',{order:'work_date.desc', limit:300}),
+      supa.get('purchases', {order:'purchase_date.desc', limit:100}),
+      supa.get('suppliers', {order:'name.asc'}),
+      supa.get('booking_requests',{order:'created_at.desc', limit:200}),
+    ]);
+
+    // Categories
+    db.categories = cats.map(c=>c.name);
+
+    // Services — resolve category name
+    const catMap={};cats.forEach(c=>catMap[c.id]=c.name);
+    db.services = svcs.map(s=>({
+      id:s.id, name:s.name, cat:catMap[s.category_id]||'General',
+      price:parseFloat(s.price), duration:s.duration_min,
+      icon:s.icon||'💅', sellPrice:parseFloat(s.price)
+    }));
+
+    db.staff = stf.map(s=>({
+      id:s.id, name:s.name, role:s.role,
+      skills:s.skills||[], commission:parseFloat(s.commission_pct),
+      color:s.color||'#e11d48', sales:0, appts:0, userId:s.user_id
+    }));
+
+    db.customers = custs.map(c=>({
+      id:c.id, name:c.name, phone:c.phone||'',
+      email:c.email||'', points:c.loyalty_points||0,
+      visits:[], note:c.notes||''
+    }));
+
+    db.appointments = appts.map(a=>({
+      id:a.id, customer:a.customer_name, service:a.service_name,
+      staff:a.staff_name, date:a.date,
+      slot:['9:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'].indexOf(a.time_slot),
+      status:a.status, color:a.color||'#dbeafe', textColor:a.text_color||'#1d4ed8',
+      source:a.source||'manual'
+    }));
+
+    // Sales with items
+    const saleIds = sals.map(s=>s.id);
+    let saleItemsArr = [];
+    if (saleIds.length>0) {
+      const ids = saleIds.slice(0,50).join(',');
+      saleItemsArr = await supa.get('sale_items',{filter:`sale_id=in.(${ids})`}).catch(()=>[]);
+    }
+    db.sales = sals.map(s=>({
+      id:s.id, date:s.sale_date, customer:s.customer_name,
+      total:parseFloat(s.total), payment:s.payment_method,
+      discount:parseFloat(s.discount_amount||0),
+      items:saleItemsArr.filter(i=>i.sale_id===s.id).map(i=>({
+        type:i.item_type||'service', service:i.name,
+        price:parseFloat(i.unit_price), cost:parseFloat(i.cost_price||0),
+        qty:i.quantity||1, staff:i.staff_name||''
+      }))
+    }));
+
+    db.inventory = invs.map(p=>({
+      id:p.id, name:p.name, cat:p.category||'',
+      stock:p.stock_qty, minStock:p.min_stock,
+      price:parseFloat(p.cost_price||0), sellPrice:parseFloat(p.sell_price||0),
+      supplier:p.supplier_id||'', isLiquid:p.is_liquid||false,
+      volumeMl:p.volume_ml, currentMl:p.current_ml,
+      dailyUsageMl:p.daily_usage_ml, openedDate:p.opened_date
+    }));
+
+    db.expenses = exps.map(e=>({
+      id:e.id, date:e.expense_date, category:e.category,
+      description:e.description, amount:parseFloat(e.amount),
+      payment:e.payment_method||'cash', recurring:e.is_recurring||false
+    }));
+
+    db.attendance = att.map(a=>({
+      id:a.id, staffId:a.staff_id, staffName:a.staff_name,
+      date:a.work_date, checkIn:a.check_in||'', checkOut:a.check_out||'',
+      status:a.status||'present', hoursWorked:parseFloat(a.hours_worked||0), notes:a.notes||''
+    }));
+
+    // Purchases with items
+    const purIds = purs.map(p=>p.id);
+    let purItemsArr = [];
+    if (purIds.length>0) {
+      const ids = purIds.slice(0,50).join(',');
+      purItemsArr = await supa.get('purchase_items',{filter:`purchase_id=in.(${ids})`}).catch(()=>[]);
+    }
+    db.purchases = purs.map(p=>({
+      id:p.id, date:p.purchase_date, supplier:p.supplier_name,
+      supplierId:p.supplier_id, invoiceNo:p.invoice_no,
+      grandTotal:parseFloat(p.grand_total), paid:parseFloat(p.amount_paid||0),
+      balance:parseFloat(p.balance||0), status:p.status,
+      items:purItemsArr.filter(i=>i.purchase_id===p.id).map(i=>({
+        productId:i.product_id, name:i.product_name,
+        qty:i.quantity, unitCost:parseFloat(i.unit_cost), total:parseFloat(i.total_cost)
+      }))
+    }));
+
+    db.suppliers = sups.map(s=>({
+      id:s.id, name:s.name, contact:s.phone||'', email:s.email||'',
+      balance:parseFloat(s.balance_owed||0), totalPurchased:parseFloat(s.total_purchased||0),
+      notes:s.notes||''
+    }));
+
+    db.bookingRequests = breqs.map(b=>({
+      id:b.id, externalId:b.external_ref, customerName:b.customer_name,
+      phone:b.customer_phone||'', email:b.customer_email||'',
+      service:b.service_name, preferredDate:b.preferred_date,
+      preferredTime:b.preferred_time, preferredStaff:b.preferred_staff||'Any',
+      notes:b.notes||'', status:b.status,
+      createdAt:new Date(b.created_at).getTime(), source:b.source||'website'
+    }));
+
+    saveDB(); // cache to localStorage
+    console.log(`Loaded: ${db.services.length} services, ${db.staff.length} staff, ${db.customers.length} customers, ${db.appointments.length} appts`);
+  } catch(e) {
+    console.error('loadAllFromSupabase error:', e);
+  }
+}
+
+// ── REALTIME: New bookings appear instantly ───────────────────────
+function startRealtimeBookings() {
+  try {
+    realtimeWS = new WebSocket(`wss://nglisiokqrvbbyezvhsd.supabase.co/realtime/v1/websocket?apikey=${SUPABASE_ANON}&vsn=1.0.0`);
+    realtimeWS.onopen = () => {
+      realtimeWS.send(JSON.stringify({
+        topic:'realtime:public:booking_requests',
+        event:'phx_join',
+        payload:{config:{postgres_changes:[{event:'INSERT',schema:'public',table:'booking_requests',filter:`salon_id=eq.${SALON_ID}`}]}},
+        ref:'1'
+      }));
+      console.log('Realtime: listening for new bookings');
+    };
+    realtimeWS.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.payload?.data?.type==='INSERT') {
+        const b = msg.payload.data.record;
+        const req = {id:b.id,externalId:b.external_ref,customerName:b.customer_name,
+          phone:b.customer_phone||'',email:b.customer_email||'',service:b.service_name,
+          preferredDate:b.preferred_date,preferredTime:b.preferred_time,
+          preferredStaff:b.preferred_staff||'Any',notes:b.notes||'',
+          status:b.status,createdAt:Date.now(),source:b.source||'website'};
+        if(!db.bookingRequests) db.bookingRequests=[];
+        db.bookingRequests.unshift(req);
+        saveDB();
+        if(currentPage==='booking') renderBookingAdmin();
+        if(currentPage==='dashboard') renderDashboard();
+        showToast('📅 New booking: '+req.customerName+' — '+req.service);
+      }
+    };
+  } catch(e) { console.warn('Realtime unavailable:', e.message); }
+}
+
+// ── WRITE HELPERS (called after local save) ───────────────────────
+async function dbInsertSale(sale) {
+  if (!supaConnected) return;
+  try {
+    const [saved] = await supa.insert('sales',{
+      salon_id:SALON_ID, customer_name:sale.customer,
+      subtotal:sale.items.reduce((a,i)=>a+(i.price*(i.qty||1)),0),
+      discount_type:'fixed', discount_amount:sale.discount||0,
+      total:sale.total, payment_method:sale.payment,
+      sale_date:sale.date||TODAY,
+      loyalty_earned:Math.floor(sale.total/(db.settings.pts||10))
+    });
+    if (saved?.id) {
+      const items = sale.items.map(i=>({
+        sale_id:saved.id, salon_id:SALON_ID,
+        item_type:i.type||'service', name:i.service,
+        quantity:i.qty||1, unit_price:i.price,
+        cost_price:i.cost||0, total_price:i.price*(i.qty||1),
+        staff_name:i.staff
+      }));
+      await supa.insert('sale_items', items);
+    }
+  } catch(e){ console.error('dbInsertSale:', e.message); }
+}
+
+async function dbInsertAppointment(appt) {
+  if (!supaConnected) return;
+  const TIMES=['9:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+  try {
+    await supa.insert('appointments',{
+      salon_id:SALON_ID, customer_name:appt.customer,
+      service_name:appt.service, staff_name:appt.staff,
+      date:appt.date, time_slot:TIMES[appt.slot]||'9:00',
+      status:appt.status, source:appt.source||'manual',
+      color:appt.color, text_color:appt.textColor
+    });
+  } catch(e){ console.error('dbInsertAppointment:', e.message); }
+}
+
+async function dbUpdateApptStatus(apptId, status) {
+  if (!supaConnected) return;
+  const cols={booked:'#dbeafe',inprogress:'#fef9c3',done:'#dcfce7',cancelled:'#fee2e2'};
+  const txt={booked:'#1d4ed8',inprogress:'#92400e',done:'#166534',cancelled:'#991b1b'};
+  try { await supa.update('appointments', apptId, {status, color:cols[status], text_color:txt[status]}); } catch(e){}
+}
+
+async function dbInsertCustomer(cust) {
+  if (!supaConnected) return null;
+  try {
+    const [saved] = await supa.insert('customers',{
+      salon_id:SALON_ID, name:cust.name,
+      phone:cust.phone||null, email:cust.email||null,
+      notes:cust.note||null, source:'manual'
+    });
+    return saved?.id||null;
+  } catch(e){ console.error('dbInsertCustomer:', e.message); return null; }
+}
+
+async function dbInsertExpense(exp) {
+  if (!supaConnected) return;
+  try {
+    await supa.insert('expenses',{
+      salon_id:SALON_ID, category:exp.category,
+      description:exp.description, amount:exp.amount,
+      payment_method:exp.payment||'cash',
+      is_recurring:exp.recurring||false, expense_date:exp.date
+    });
+  } catch(e){ console.error('dbInsertExpense:', e.message); }
+}
+
+async function dbUpsertAttendance(rec) {
+  if (!supaConnected) return;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/attendance?salon_id=eq.${SALON_ID}&staff_id=eq.${rec.staffId}&work_date=eq.${rec.date}`,{headers:supa._h()});
+    const existing = await r.json();
+    const data = {salon_id:SALON_ID, staff_id:rec.staffId, staff_name:rec.staffName,
+      work_date:rec.date, check_in:rec.checkIn||null, check_out:rec.checkOut||null,
+      hours_worked:rec.hoursWorked||0, status:rec.status, notes:rec.notes||''};
+    if (existing.length) {
+      await supa.update('attendance', existing[0].id, data);
+    } else {
+      await supa.insert('attendance', data);
+    }
+  } catch(e){ console.error('dbUpsertAttendance:', e.message); }
+}
+
+async function dbInsertBookingRequest(req) {
+  if (!supaConnected) return;
+  try {
+    await supa.insert('booking_requests',{
+      salon_id:SALON_ID, external_ref:req.externalId,
+      customer_name:req.customerName, customer_phone:req.phone||null,
+      customer_email:req.email||null, service_name:req.service,
+      preferred_date:req.preferredDate, preferred_time:req.preferredTime,
+      preferred_staff:req.preferredStaff||'Any',
+      notes:req.notes||null, status:req.status, source:req.source||'website'
+    });
+  } catch(e){ console.error('dbInsertBookingRequest:', e.message); }
+}
+
+async function dbUpdateBookingStatus(id, status) {
+  if (!supaConnected) return;
+  try { await supa.update('booking_requests', id, {status}); } catch(e){}
+}
+
+async function dbInsertPurchase(pur) {
+  if (!supaConnected) return;
+  try {
+    const [saved] = await supa.insert('purchases',{
+      salon_id:SALON_ID, supplier_name:pur.supplier,
+      invoice_no:pur.invoiceNo, purchase_date:pur.date,
+      grand_total:pur.grandTotal, amount_paid:pur.paid||0,
+      balance:pur.balance||pur.grandTotal, status:pur.status
+    });
+    if (saved?.id && pur.items?.length) {
+      const items = pur.items.map(i=>({
+        purchase_id:saved.id, salon_id:SALON_ID,
+        product_id:i.productId||null, product_name:i.name,
+        quantity:i.qty, unit_cost:i.unitCost, total_cost:i.total
+      }));
+      await supa.insert('purchase_items', items);
+    }
+  } catch(e){ console.error('dbInsertPurchase:', e.message); }
+}
+
+// ─── DATA (localStorage fallback) ────────────────────────────────
 const DB_KEY = 'solopos_data';
+
 
 const seed = {
   settings:{name:'Dawa Belle',currency:'QAR',tax:0,pts:1},
@@ -795,6 +1151,8 @@ function doLogin(){
   document.getElementById('nav-urole').textContent=user.role==='admin'?'Administrator':user.role==='cashier'?'Cashier':'Staff';
   buildNav();
   navTo('dashboard');
+  // Init Supabase (loads real data)
+  initSupabase();
   // Start API polling if connected
   if(db.bookingSettings?.apiUrl&&db.bookingSettings?.apiKey){
     startAPIPolling();
@@ -1231,7 +1589,8 @@ function checkout(){
   db.sales.unshift({id:Date.now(),date:TODAY,customer:cnm,items:saleItems,total,payment:selPayment,discount:disc});
   if(cid){const c=db.customers.find(x=>x.id==cid);if(c){c.points+=Math.floor(total/(db.settings.pts||10));c.visits.unshift({date:TODAY,service:billItems.map(i=>i.name).join(', '),amount:total,staff:billItems[0].assignedStaff});}}
 
-  saveDB();billItems=[];
+  const _ns=db.sales[0];saveDB();dbInsertSale(_ns);
+  billItems=[];
   if(dvEl)dvEl.value='';
   closeBillDrawer();
   renderPOS();
@@ -1288,7 +1647,7 @@ function apptClick(id){
 }
 function saveApptStatus(id){
   const a=db.appointments.find(x=>x.id===id);const s=document.getElementById('ma-status').value;
-  if(a){a.status=s;a.color=APPT_COLORS[s].bg;a.textColor=APPT_COLORS[s].tc;saveDB();}
+  if(a){a.status=s;a.color=APPT_COLORS[s].bg;a.textColor=APPT_COLORS[s].tc;saveDB();dbUpdateApptStatus(id,s);}
   closeModal();renderCalendar();showToast('Status updated');
 }
 function deleteAppt(id){db.appointments=db.appointments.filter(a=>a.id!==id);saveDB();closeModal();renderCalendar();showToast('Appointment cancelled');}
@@ -1311,8 +1670,10 @@ function saveAppt(){
   const date=document.getElementById('ma-date').value;
   const slot=parseInt(document.getElementById('ma-slot').value);
   if(db.appointments.find(a=>a.date===date&&a.slot===slot&&a.staff===staff&&a.status!=='cancelled')){showToast('Slot conflict for '+staff,'warn');return;}
-  db.appointments.push({id:Date.now(),customer:cnm,service:svc?.name||'',staff,date,slot,status:'booked',color:'#dbeafe',textColor:'#1d4ed8'});
-  saveDB();closeModal();renderCalendar();showToast('Appointment booked!');
+  const _na={id:Date.now(),customer:cnm,service:svc?.name||'',staff,date,slot,status:'booked',color:'#dbeafe',textColor:'#1d4ed8'};
+  db.appointments.push(_na);
+  saveDB();dbInsertAppointment(_na);
+  closeModal();renderCalendar();showToast('Appointment booked!');
 }
 
 // ─── CUSTOMERS ──────────────────────────────────────────────────
@@ -1400,7 +1761,8 @@ function showAddCustomer(){
 function saveCustomer(){
   const nm=document.getElementById('nc-name').value.trim();if(!nm){showToast('Name required','warn');return;}
   db.customers.unshift({id:Date.now(),name:nm,phone:document.getElementById('nc-phone').value||'',email:document.getElementById('nc-email').value||'',points:0,visits:[],note:document.getElementById('nc-note').value||''});
-  saveDB();closeModal();renderCustomers();showToast('Customer added!');
+  saveDB();dbInsertCustomer(db.customers[0]);
+  closeModal();renderCustomers();showToast('Customer added!');
 }
 
 // ─── STAFF ──────────────────────────────────────────────────────
@@ -1800,7 +2162,8 @@ function saveNewPurchase(){
   if(status==='received'&&item){item.stock+=qty;}
   if(!db.purchases)db.purchases=[];
   db.purchases.unshift(po);
-  saveDB();closeModal();renderPurchasePage();
+  saveDB();dbInsertPurchase(po);
+  closeModal();renderPurchasePage();
   showToast(status==='received'?`Order created & ${qty} units added to stock!`:'Purchase order created!');
 }
 
@@ -2478,8 +2841,10 @@ function saveExpense(){
   const desc=document.getElementById('ne-desc').value.trim();if(!desc){showToast('Description required','warn');return;}
   const amt=parseFloat(document.getElementById('ne-amt').value)||0;if(amt<=0){showToast('Amount required','warn');return;}
   if(!db.expenses)db.expenses=[];
-  db.expenses.unshift({id:Date.now(),date:document.getElementById('ne-date').value,category:document.getElementById('ne-cat').value,description:desc,amount:amt,payment:document.getElementById('ne-pay').value,recurring:document.getElementById('ne-rec').value==='1'});
-  saveDB();closeModal();renderExpenses();showToast('Expense recorded!');
+  const _newExp={id:Date.now(),date:document.getElementById('ne-date').value,category:document.getElementById('ne-cat').value,description:desc,amount:amt,payment:document.getElementById('ne-pay').value,recurring:document.getElementById('ne-rec').value==='1'};
+  db.expenses.unshift(_newExp);
+  saveDB();dbInsertExpense(_newExp);
+  closeModal();renderExpenses();showToast('Expense recorded!');
 }
 function deleteExpense(id){
   if(!confirm('Delete this expense?'))return;
@@ -2913,8 +3278,10 @@ function confirmBooking(id){
 function rejectBooking(id){
   const r=db.bookingRequests.find(x=>x.id===id);if(!r)return;
   if(!confirm('Reject this booking request?'))return;
-  r.status='rejected';saveDB();renderBookingAdmin();
+  r.status='rejected';saveDB();
   syncStatusToAPI(r.externalId||r.id,'rejected');
+  dbUpdateBookingStatus(r.id,'rejected');
+  renderBookingAdmin();
   showToast('Booking rejected');
 }
 
@@ -3133,6 +3500,8 @@ function showBookingPage(){
       db3.appointments.push({id:Date.now()+1,customer:bkState.name,service:bkState.service,staff,date:bkState.date,slot:Math.max(0,slot),status:'booked',color:'#dbeafe',textColor:'#1d4ed8',source:'online'});
     }
     localStorage.setItem(DB_KEY,JSON.stringify(db3));
+    // Also send to Supabase directly from booking page
+    dbInsertBookingRequest(req).catch(()=>{});
     bkState.step=4;renderStep();
   };
   renderStep();
@@ -3252,9 +3621,11 @@ function markAttendance(staffId,date,status){
   const existing=db.attendance.find(a=>a.staffId===staffId&&a.date===date);
   const now=new Date();
   const timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
-  if(existing){existing.status=status;if(status==='present'&&!existing.checkIn)existing.checkIn=timeStr;}
-  else{db.attendance.push({id:Date.now(),staffId,staffName:s.name,date,checkIn:status==='present'?timeStr:'',checkOut:'',status,hoursWorked:0,notes:''});}
-  saveDB();renderAttendance();showToast(s.name+' marked as '+status);
+  let _attRec;
+  if(existing){existing.status=status;if(status==='present'&&!existing.checkIn)existing.checkIn=timeStr;_attRec=existing;}
+  else{_attRec={id:Date.now(),staffId,staffName:s.name,date,checkIn:status==='present'?timeStr:'',checkOut:'',status,hoursWorked:0,notes:''};db.attendance.push(_attRec);}
+  saveDB();dbUpsertAttendance(_attRec);
+  renderAttendance();showToast(s.name+' marked as '+status);
 }
 
 function markCheckOut(staffId,date){
@@ -3268,7 +3639,8 @@ function markCheckOut(staffId,date){
   const [ih,im]=rec.checkIn.split(':').map(Number);
   const [oh,om]=timeStr.split(':').map(Number);
   rec.hoursWorked=Math.round(((oh*60+om)-(ih*60+im))/60*10)/10;
-  saveDB();renderAttendance();
+  saveDB();dbUpsertAttendance(rec);
+  renderAttendance();
   const s=db.staff.find(x=>x.id===staffId);
   showToast((s?.name||'Staff')+' checked out · '+rec.hoursWorked+'h worked');
 }
