@@ -1,0 +1,6 @@
+[build]
+  builder = "NIXPACKS"
+
+[deploy]
+  startCommand = "node api_server.js"
+  restartPolicyType = "ON_FAILURE"
