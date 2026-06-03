@@ -7,10 +7,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="SoloPOS">
 <meta name="mobile-web-app-capable" content="yes">
-<title>SoloPOS — Dawa Belle Salon</title>
+<title>SoloPOS — SRP Sports Recovery Point</title>
 <meta name="theme-color" content="#e11d48">
 <link rel="manifest" href="manifest.json">
 <style>
+@media print {
+  body > *:not(#invoice-root) { display: none !important; }
+  #invoice-root { position: static !important; background: white !important; }
+}
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--rose:#e11d48;--rose-light:#fff1f2;--rose-mid:#fda4af;--teal:#0d9488;--teal-light:#f0fdfa;--gold:#d97706;--gold-light:#fffbeb;--green:#16a34a;--purple:#7c3aed;--sidebar-w:240px;--topbar-h:58px;--bottom-nav-h:64px}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:100vh;-webkit-text-size-adjust:100%}
@@ -311,7 +315,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
   <div class="login-box">
     <div class="login-logo">
       <div class="brand">✦ SoloPOS</div>
-      <div class="sub">Dawa Belle Salon</div>
+      <div class="sub">SRP Sports Recovery Point</div>
     </div>
     <div class="login-field">
       <label>Username</label>
@@ -333,7 +337,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
   <div class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="brand-mark">✦ SoloPOS</div>
-      <div class="brand-sub">Dawa Belle</div>
+      <div class="brand-sub">SRP Sports Recovery Point</div>
     </div>
     <div class="nav-section" id="sidebar-nav"></div>
     <div class="sidebar-footer">
@@ -398,7 +402,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
           </div>
           <div class="pos-right">
             <select class="cust-sel" id="pos-cust"><option value="">Walk-in Customer</option></select>
-            <div class="bill-hdr">Current Bill — <span style="color:#94a3b8;font-weight:400;font-size:12px" id="dawa-belle-lbl">Dawa Belle</span></div>
+            <div class="bill-hdr">Current Bill — <span style="color:#94a3b8;font-weight:400;font-size:12px" id="srp-sports-lbl">SRP Sports Recovery Point</span></div>
             <div class="bill-items" id="bill-items"></div>
             <div class="bill-totals">
               <div class="disc-row">
@@ -608,7 +612,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
         <div class="admin-section" id="admin-settings">
           <div class="card" style="max-width:480px">
             <div class="card-title">Salon Settings</div>
-            <div class="form-row"><label>Salon Name</label><input type="text" id="set-name" value="Dawa Belle"></div>
+            <div class="form-row"><label>Salon Name</label><input type="text" id="set-name" value="SRP Sports Recovery Point"></div>
             <div class="form-row"><label>Currency</label><select id="set-currency"><option value="QAR" selected>QAR — Qatari Riyal</option><option value="AED">AED — UAE Dirham</option><option value="SAR">SAR — Saudi Riyal</option><option value="USD">USD — US Dollar</option></select></div>
             <div class="form-row"><label>Tax %</label><input type="number" id="set-tax" value="0" min="0" max="30"></div>
             <div class="form-row"><label>Loyalty Points per QAR 10</label><input type="number" id="set-pts" value="1" min="0"></div>
@@ -617,7 +621,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
           <div class="card" style="max-width:480px;margin-top:12px">
             <div class="card-title" style="color:#e11d48">Danger Zone</div>
             <p style="font-size:12px;color:#64748b;margin-bottom:10px">These actions cannot be undone.</p>
-            <button class="btn btn-danger btn-sm" onclick="if(confirm('Reset ALL data?')){localStorage.removeItem('solopos_data');location.reload()}">Reset All Data</button>
+            <button class="btn btn-danger btn-sm" onclick="if(confirm('Reset ALL data?')){localStorage.removeItem('srpsalon_data');location.reload()}">Reset All Data</button>
           </div>
         </div>
 
@@ -1021,35 +1025,29 @@ async function dbInsertPurchase(pur) {
 }
 
 // ─── DATA (localStorage fallback) ────────────────────────────────
-const DB_KEY = 'solopos_data';
+const DB_KEY = 'srpsalon_data';
 
 
 const seed = {
-  settings:{name:'Dawa Belle',currency:'QAR',tax:0,pts:1},
-  categories:['Hair','Nails','Skin','Body'],
+  settings:{name:'SRP Sports Recovery Point',currency:'QAR',tax:0,pts:1},
+  categories:['Massage','VIP Massage'],
   services:[
-    {id:1,name:'Haircut',cat:'Hair',price:120,duration:45,icon:'✂️'},
-    {id:2,name:'Hair Color',cat:'Hair',price:350,duration:90,icon:'🎨'},
-    {id:3,name:'Blowdry',cat:'Hair',price:80,duration:30,icon:'💨'},
-    {id:4,name:'Highlights',cat:'Hair',price:450,duration:120,icon:'✨'},
-    {id:5,name:'Manicure',cat:'Nails',price:100,duration:45,icon:'💅'},
-    {id:6,name:'Pedicure',cat:'Nails',price:130,duration:60,icon:'🦶'},
-    {id:7,name:'Gel Nails',cat:'Nails',price:200,duration:75,icon:'💎'},
-    {id:8,name:'Facial',cat:'Skin',price:250,duration:60,icon:'🌸'},
-    {id:9,name:'Waxing',cat:'Skin',price:150,duration:45,icon:'🪷'},
-    {id:10,name:'Eyebrows',cat:'Skin',price:60,duration:20,icon:'👁️'},
-    {id:11,name:'Massage',cat:'Body',price:300,duration:60,icon:'🧖'},
-    {id:12,name:'Body Wrap',cat:'Body',price:400,duration:90,icon:'🌿'},
+    {id:1,name:'Traditional Javanese Massage',cat:'Massage',price:290,duration:60,icon:'🧖'},
+    {id:2,name:'Sport Massage',cat:'Massage',price:290,duration:60,icon:'💪'},
+    {id:3,name:'Therapeutic Massage',cat:'Massage',price:290,duration:60,icon:'🌿'},
+    {id:4,name:'Traditional Javanese Massage VIP',cat:'VIP Massage',price:390,duration:90,icon:'👑'},
+    {id:5,name:'Sport Massage VIP',cat:'VIP Massage',price:390,duration:90,icon:'🏆'},
+    {id:6,name:'Therapeutic Massage VIP',cat:'VIP Massage',price:390,duration:90,icon:'⭐'},
   ],
   users:[
     {id:1,username:'admin',password:'1234',name:'Admin User',role:'admin',staffId:null,active:true},
   ],
   staff:[
-    {id:1,name:'Aisha Rahman',role:'Stylist',skills:['Hair','Nails'],commission:15,color:'#e11d48',sales:3200,appts:28,userId:null},
-    {id:2,name:'Lara Khalid',role:'Nail Tech',skills:['Nails'],commission:12,color:'#0d9488',sales:1800,appts:22,userId:null},
-    {id:3,name:'Noura Al-Sayed',role:'Esthetician',skills:['Skin','Body'],commission:14,color:'#7c3aed',sales:2600,appts:19,userId:null},
-    {id:4,name:'Mia Chen',role:'Stylist',skills:['Hair'],commission:15,color:'#d97706',sales:2900,appts:24,userId:null},
-    {id:5,name:'Sara Hassan',role:'Therapist',skills:['Body','Skin'],commission:13,color:'#16a34a',sales:2100,appts:17,userId:null},
+    {id:1,name:'Sunarwan Siswo Saputro',role:'Therapist',skills:['Massage','VIP Massage'],commission:15,color:'#e11d48',sales:0,appts:0,userId:null},
+    {id:2,name:'Budi Cahyono Subardi',role:'Therapist',skills:['Massage','VIP Massage'],commission:15,color:'#0d9488',sales:0,appts:0,userId:null},
+    {id:3,name:"Muslih Ma'arif Kamilin",role:'Therapist',skills:['Massage','VIP Massage'],commission:15,color:'#7c3aed',sales:0,appts:0,userId:null},
+    {id:4,name:'Aris Armani Dulmazid',role:'Therapist',skills:['Massage','VIP Massage'],commission:15,color:'#d97706',sales:0,appts:0,userId:null},
+    {id:5,name:'Agim Sugan Jamur',role:'Therapist',skills:['Massage','VIP Massage'],commission:15,color:'#16a34a',sales:0,appts:0,userId:null},
   ],
   customers:[
     {id:1,name:'Fatima Al-Dosari',phone:'+974 5512 3456',email:'fatima@email.com',points:240,visits:[
@@ -1107,7 +1105,8 @@ const seed = {
     {id:3,customer:'Layla Mohammed',service:'Massage',staff:'Sara Hassan',date:'2026-04-16',slot:1,status:'booked',color:'#dbeafe',textColor:'#1d4ed8'},
   ],
   sales:[
-    {id:1,date:'2026-04-15',customer:'Fatima',items:[{type:'service',service:'Haircut',price:120,cost:0,staff:'Aisha Rahman'},{type:'service',service:'Color',price:350,cost:30,staff:'Aisha Rahman'}],total:470,payment:'card'},
+    // SRP real sales will load from Supabase
+    // {id:1,date:'2026-04-15',customer:'Fatima',items:[{type:'service',service:'Haircut',price:120,cost:0,staff:'Aisha Rahman'},{type:'service',service:'Color',price:350,cost:30,staff:'Aisha Rahman'}],total:470,payment:'card'},
     {id:2,date:'2026-04-15',customer:'Walk-in',items:[{type:'service',service:'Eyebrows',price:60,cost:0,staff:'Noura Al-Sayed'}],total:60,payment:'cash'},
     {id:3,date:'2026-04-14',customer:'Layla',items:[{type:'service',service:'Massage',price:300,cost:0,staff:'Sara Hassan'}],total:300,payment:'card'},
     {id:4,date:'2026-04-13',customer:'Mariam',items:[{type:'service',service:'Gel Nails',price:200,cost:65,staff:'Lara Khalid'}],total:200,payment:'cash'},
@@ -1121,7 +1120,8 @@ const seed = {
     {id:3,customer:'Layla Mohammed',service:'Massage',staff:'Sara Hassan',date:'2026-04-16',slot:1,status:'booked',color:'#dbeafe',textColor:'#1d4ed8'},
   ],
   sales:[
-    {id:1,date:'2026-04-15',customer:'Fatima',items:[{type:'service',service:'Haircut',price:120,cost:0,staff:'Aisha Rahman'},{type:'service',service:'Color',price:350,cost:30,staff:'Aisha Rahman'}],total:470,payment:'card'},
+    // SRP real sales will load from Supabase
+    // {id:1,date:'2026-04-15',customer:'Fatima',items:[{type:'service',service:'Haircut',price:120,cost:0,staff:'Aisha Rahman'},{type:'service',service:'Color',price:350,cost:30,staff:'Aisha Rahman'}],total:470,payment:'card'},
     {id:2,date:'2026-04-15',customer:'Walk-in',items:[{type:'service',service:'Eyebrows',price:60,cost:0,staff:'Noura Al-Sayed'}],total:60,payment:'cash'},
     {id:3,date:'2026-04-14',customer:'Layla',items:[{type:'service',service:'Massage',price:300,cost:0,staff:'Sara Hassan'}],total:300,payment:'card'},
     {id:4,date:'2026-04-13',customer:'Mariam',items:[{type:'service',service:'Gel Nails',price:200,cost:65,staff:'Lara Khalid'}],total:200,payment:'cash'},
@@ -1594,7 +1594,8 @@ function checkout(){
   if(dvEl)dvEl.value='';
   closeBillDrawer();
   renderPOS();
-  showToast('Sale complete! '+db.settings.currency+' '+total+' via '+selPayment);
+  // Show invoice immediately after sale
+  showInvoice(_ns);
 }
 
 // ─── CALENDAR ───────────────────────────────────────────────────
@@ -2858,7 +2859,7 @@ let bookTab='overview';
 if(!db.bookingRequests) db.bookingRequests=[];
 if(!db.bookingSettings) db.bookingSettings={
   enabled:true,
-  salonName:db.settings?.name||'Dawa Belle',
+  salonName:db.settings?.name||'SRP Sports Recovery Point',
   welcomeMsg:'Book your appointment online. We will confirm within 1 hour.',
   showPrices:true,
   requirePhone:true,
@@ -2881,7 +2882,7 @@ function setBookTab(t,el){
 
 function renderBookingAdmin(){
   if(!db.bookingRequests) db.bookingRequests=[];
-  if(!db.bookingSettings) db.bookingSettings={enabled:true,salonName:db.settings?.name||'Dawa Belle',welcomeMsg:'Book your appointment online.',showPrices:true,requirePhone:true,requireEmail:false,autoConfirm:false,workingHours:{start:'09:00',end:'19:00'},offDays:[],confirmMsg:'Thank you! Your booking is received.',whatsapp:'',primaryColor:'#e11d48',accentColor:'#0d9488'};
+  if(!db.bookingSettings) db.bookingSettings={enabled:true,salonName:db.settings?.name||'SRP Sports Recovery Point',welcomeMsg:'Book your appointment online.',showPrices:true,requirePhone:true,requireEmail:false,autoConfirm:false,workingHours:{start:'09:00',end:'19:00'},offDays:[],confirmMsg:'Thank you! Your booking is received.',whatsapp:'',primaryColor:'#e11d48',accentColor:'#0d9488'};
   renderBookBody();
 }
 
@@ -3028,7 +3029,7 @@ function renderBookWidget(){
       </div>
       <div style="font-size:12px;color:#64748b;margin-bottom:12px">Share this link on WhatsApp, Instagram, or your website so customers can book online.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-sm" style="background:#25d366;color:white;border-color:#25d366" onclick="window.open('https://wa.me/?text=Book+your+appointment+at+${encodeURIComponent(bs.salonName||'Dawa Belle')}:+${bookUrl}','_blank')">📲 Share on WhatsApp</button>
+        <button class="btn btn-sm" style="background:#25d366;color:white;border-color:#25d366" onclick="window.open('https://wa.me/?text=Book+your+appointment+at+${encodeURIComponent(bs.salonName||'SRP Sports Recovery Point')}:+${bookUrl}','_blank')">📲 Share on WhatsApp</button>
         <button class="btn btn-sm" onclick="previewBookingPage()">👁 Preview Page</button>
       </div>
     </div>
@@ -3294,8 +3295,8 @@ function whatsappBooking(id){
   const r=db.bookingRequests.find(x=>x.id===id);if(!r||!r.phone)return;
   const bs=db.bookingSettings||{};
   const msg=r.status==='pending'
-    ?`Hello ${r.customerName}! Your booking request for ${r.service} on ${r.preferredDate} at ${r.preferredTime} has been received. We will confirm shortly. — ${bs.salonName||'Dawa Belle'}`
-    :`Hello ${r.customerName}! Your appointment for ${r.service} on ${r.preferredDate} at ${r.preferredTime} is confirmed. See you soon! — ${bs.salonName||'Dawa Belle'}`;
+    ?`Hello ${r.customerName}! Your booking request for ${r.service} on ${r.preferredDate} at ${r.preferredTime} has been received. We will confirm shortly. — ${bs.salonName||'SRP Sports Recovery Point'}`
+    :`Hello ${r.customerName}! Your appointment for ${r.service} on ${r.preferredDate} at ${r.preferredTime} is confirmed. See you soon! — ${bs.salonName||'SRP Sports Recovery Point'}`;
   window.open('https://wa.me/'+r.phone.replace(/\D/g,'')+`?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
@@ -3357,7 +3358,7 @@ function showBookingPage(){
   const services=db2.services||[];
   const staff=db2.staff||[];
   const c=bs.primaryColor||'#e11d48';
-  const salonName=bs.salonName||db2.settings?.name||'Dawa Belle';
+  const salonName=bs.salonName||db2.settings?.name||'SRP Sports Recovery Point';
   // Build time slots
   const timeSlots=[];
   const start=parseInt((bs.workingHours?.start||'09:00').split(':')[0]);
@@ -3844,6 +3845,226 @@ function saveSettings(){
   db.settings.tax=parseInt(document.getElementById('set-tax').value)||0;
   db.settings.pts=parseInt(document.getElementById('set-pts').value)||1;
   saveDB();showToast('Settings saved!');
+}
+
+// ─── INVOICE ─────────────────────────────────────────────────────
+function showInvoice(sale) {
+  if (!sale) return;
+  const cur = db.settings.currency;
+  const salonName = db.settings.name || 'SRP Sports Recovery Point';
+  const receiptNo = sale.receiptNo || sale.id?.toString().slice(-8).toUpperCase() || Date.now().toString().slice(-8);
+  const payIcon = {cash:'💵',card:'💳',split:'⚡',online:'📱'}[sale.payment]||'💳';
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const timeStr = now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+
+  const itemsHtml = (sale.items||[]).map(it=>`
+    <tr>
+      <td style="padding:8px 0;border-bottom:1px solid #f1f5f9">
+        <div style="font-weight:600;color:#0f172a">${it.type==='product'?'📦 ':' '}${it.service}</div>
+        <div style="font-size:11px;color:#94a3b8">${it.staff||''}</div>
+      </td>
+      <td style="padding:8px 0;border-bottom:1px solid #f1f5f9;text-align:center;color:#64748b;font-size:13px">${it.qty||1}</td>
+      <td style="padding:8px 0;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;color:#0f172a">${cur} ${it.price}</td>
+    </tr>`).join('');
+
+  const loyaltyEarned = Math.floor(sale.total / (db.settings.pts||10));
+  const cust = db.customers.find(c=>c.name===sale.customer);
+
+  const invoiceHtml = `
+  <div id="invoice-root" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px" onclick="if(event.target.id==='invoice-root')closeInvoice()">
+    <div style="background:white;border-radius:20px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+
+      <!-- Invoice Header -->
+      <div style="background:linear-gradient(135deg,#0f172a,#1e1b4b);padding:24px;border-radius:20px 20px 0 0;text-align:center">
+        <div style="font-size:22px;font-weight:900;color:white;letter-spacing:-0.5px">✦ ${salonName}</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px">Sports Recovery & Wellness</div>
+        <div style="margin-top:16px;display:flex;justify-content:center;gap:6px">
+          <span style="background:rgba(255,255,255,0.1);color:#a5b4fc;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700">RECEIPT</span>
+          <span style="background:rgba(22,163,74,0.2);color:#4ade80;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700">✓ PAID</span>
+        </div>
+      </div>
+
+      <!-- Receipt Info -->
+      <div style="padding:20px 24px 0">
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9">
+          <div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Receipt No.</div>
+            <div style="font-size:14px;font-weight:700;color:#0f172a;font-family:monospace">#${receiptNo}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Date & Time</div>
+            <div style="font-size:13px;font-weight:600;color:#0f172a">${dateStr}</div>
+            <div style="font-size:11px;color:#64748b">${timeStr}</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9">
+          <div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Customer</div>
+            <div style="font-size:14px;font-weight:700;color:#0f172a">${sale.customer||'Walk-in'}</div>
+            ${cust?.points ? `<div style="font-size:11px;color:#d97706">⭐ ${cust.points} loyalty points</div>` : ''}
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Payment</div>
+            <div style="font-size:14px;font-weight:700;color:#0f172a">${payIcon} ${sale.payment?.charAt(0).toUpperCase()+sale.payment?.slice(1)||'Cash'}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div style="padding:0 24px">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;padding:12px 0 4px">Services & Products</div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr>
+              <th style="text-align:left;font-size:11px;color:#94a3b8;padding:4px 0;font-weight:600">Item</th>
+              <th style="text-align:center;font-size:11px;color:#94a3b8;padding:4px 0;font-weight:600">Qty</th>
+              <th style="text-align:right;font-size:11px;color:#94a3b8;padding:4px 0;font-weight:600">Amount</th>
+            </tr>
+          </thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+      </div>
+
+      <!-- Totals -->
+      <div style="padding:12px 24px;background:#f8fafc;margin:12px 0 0">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:#64748b;margin-bottom:6px">
+          <span>Subtotal</span><span>${cur} ${(sale.items||[]).reduce((a,i)=>a+i.price*(i.qty||1),0)}</span>
+        </div>
+        ${(sale.discount||0)>0?`<div style="display:flex;justify-content:space-between;font-size:13px;color:#e11d48;margin-bottom:6px">
+          <span>Discount</span><span>− ${cur} ${sale.discount}</span>
+        </div>`:''}
+        ${(db.settings.tax||0)>0?`<div style="display:flex;justify-content:space-between;font-size:13px;color:#64748b;margin-bottom:6px">
+          <span>Tax (${db.settings.tax}%)</span><span>${cur} ${Math.round(sale.total*db.settings.tax/100)}</span>
+        </div>`:''}
+        <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#0f172a;padding-top:8px;border-top:2px solid #e2e8f0;margin-top:4px">
+          <span>Total</span><span style="color:#e11d48">${cur} ${sale.total}</span>
+        </div>
+        ${loyaltyEarned>0?`<div style="background:#fffbeb;border-radius:8px;padding:8px 10px;margin-top:10px;font-size:12px;color:#92400e;text-align:center">
+          ⭐ ${loyaltyEarned} loyalty points earned on this visit!
+        </div>`:''}
+      </div>
+
+      <!-- Thank You -->
+      <div style="padding:16px 24px;text-align:center">
+        <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:4px">Thank you for visiting! 🙏</div>
+        <div style="font-size:12px;color:#94a3b8">We look forward to seeing you again</div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="padding:0 24px 24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button onclick="printInvoice()" style="padding:12px 8px;border-radius:10px;background:#0f172a;color:white;border:none;cursor:pointer;font-size:12px;font-weight:700">🖨 Print</button>
+        <button onclick="shareInvoiceWhatsApp()" style="padding:12px 8px;border-radius:10px;background:#25d366;color:white;border:none;cursor:pointer;font-size:12px;font-weight:700">📲 WhatsApp</button>
+        <button onclick="closeInvoice()" style="padding:12px 8px;border-radius:10px;background:#f1f5f9;color:#475569;border:none;cursor:pointer;font-size:12px;font-weight:700">✕ Close</button>
+      </div>
+
+    </div>
+  </div>`;
+
+  // Store sale for WhatsApp sharing
+  window._lastSale = sale;
+  document.body.insertAdjacentHTML('beforeend', invoiceHtml);
+}
+
+function closeInvoice(){
+  const el = document.getElementById('invoice-root');
+  if (el) el.remove();
+  showToast('Sale complete! ✓');
+}
+
+function printInvoice(){
+  const sale = window._lastSale;
+  if (!sale) return;
+  const cur = db.settings.currency;
+  const salonName = db.settings.name || 'SRP Sports Recovery Point';
+  const receiptNo = sale.receiptNo || sale.id?.toString().slice(-8).toUpperCase();
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const timeStr = now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+
+  const printWin = window.open('','_blank','width=400,height=700');
+  printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Receipt - ${receiptNo}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Courier New', monospace; font-size: 12px; color: #000; background: white; padding: 10px; max-width: 300px; margin: 0 auto; }
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .line { border-top: 1px dashed #000; margin: 8px 0; }
+    .double-line { border-top: 2px solid #000; margin: 8px 0; }
+    .row { display: flex; justify-content: space-between; padding: 3px 0; }
+    .total-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 14px; font-weight: bold; }
+    h1 { font-size: 16px; font-weight: 900; }
+    @media print { @page { margin: 5mm; size: 80mm auto; } }
+  </style>
+  </head><body>
+  <div class="center">
+    <h1>${salonName}</h1>
+    <div>Sports Recovery & Wellness</div>
+    <div style="margin-top:4px">Tel: +974 5512 3456</div>
+  </div>
+  <div class="double-line"></div>
+  <div class="row"><span>Receipt No:</span><span><b>#${receiptNo}</b></span></div>
+  <div class="row"><span>Date:</span><span>${dateStr}</span></div>
+  <div class="row"><span>Time:</span><span>${timeStr}</span></div>
+  <div class="row"><span>Customer:</span><span>${sale.customer||'Walk-in'}</span></div>
+  <div class="row"><span>Payment:</span><span>${sale.payment?.toUpperCase()||'CASH'}</span></div>
+  <div class="double-line"></div>
+  <div class="bold" style="margin-bottom:4px">ITEMS</div>
+  ${(sale.items||[]).map(i=>`
+  <div class="row">
+    <span style="flex:1;padding-right:8px">${i.service}</span>
+    <span>${i.qty||1}x</span>
+    <span style="min-width:70px;text-align:right">${cur} ${i.price}</span>
+  </div>
+  <div style="font-size:10px;color:#666;padding-left:4px">${i.staff||''}</div>
+  `).join('')}
+  <div class="line"></div>
+  <div class="row"><span>Subtotal</span><span>${cur} ${(sale.items||[]).reduce((a,i)=>a+i.price*(i.qty||1),0)}</span></div>
+  ${(sale.discount||0)>0?`<div class="row"><span>Discount</span><span>- ${cur} ${sale.discount}</span></div>`:''}
+  <div class="double-line"></div>
+  <div class="total-row"><span>TOTAL</span><span>${cur} ${sale.total}</span></div>
+  <div class="double-line"></div>
+  <div class="center" style="margin-top:12px">
+    <div class="bold">Thank you for visiting!</div>
+    <div>We look forward to seeing you again</div>
+    <div style="margin-top:6px;font-size:10px">Powered by SoloPOS</div>
+  </div>
+  <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),2000);};<\/script>
+  </body></html>`);
+  printWin.document.close();
+}
+
+function shareInvoiceWhatsApp(){
+  const sale = window._lastSale;
+  if (!sale) return;
+  const cur = db.settings.currency;
+  const salonName = db.settings.name || 'SRP Sports Recovery Point';
+  const receiptNo = sale.id?.toString().slice(-8).toUpperCase();
+  const items = (sale.items||[]).map(i=>`  • ${i.service}: ${cur} ${i.price}`).join('\n');
+  const msg =
+`🧾 *Receipt from ${salonName}*
+
+Customer: ${sale.customer||'Walk-in'}
+Receipt: #${receiptNo}
+Date: ${new Date().toLocaleDateString('en-GB')}
+
+*Services:*
+${items}
+
+${(sale.discount||0)>0?`Discount: -${cur} ${sale.discount}\n`:''}*Total: ${cur} ${sale.total}*
+Payment: ${sale.payment?.toUpperCase()||'CASH'}
+
+_Thank you for visiting! 🙏_
+_${salonName}_`;
+
+  // Get customer phone if available
+  const cust = db.customers.find(c=>c.name===sale.customer);
+  const phone = cust?.phone?.replace(/\D/g,'')||'';
+  const url = phone
+    ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+    : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url,'_blank');
 }
 
 // ─── MODAL & TOAST ──────────────────────────────────────────────
