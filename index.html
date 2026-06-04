@@ -1337,7 +1337,7 @@ window.addEventListener('resize',()=>{
 });
 
 // ─── DASHBOARD ──────────────────────────────────────────────────
-const TODAY='2026-04-15';
+const TODAY=new Date().toISOString().split('T')[0]; // dynamic current date
 function renderDashboard(){
   const cur=db.settings.currency;
   const todaySales=db.sales.filter(s=>s.date===TODAY);
@@ -1353,10 +1353,10 @@ function renderDashboard(){
   document.getElementById('k-staff-sub').textContent='present today';
   const low=db.inventory.filter(i=>i.stock<i.minStock).length;
   document.getElementById('k-stock').textContent=low;
-  const thisMonthExp=(db.expenses||[]).filter(e=>e.date.startsWith('2026-04')).reduce((a,e)=>a+e.amount,0);
+  const thisMonthExp=(db.expenses||[]).filter(e=>e.date.startsWith(TODAY.slice(0,7))).reduce((a,e)=>a+e.amount,0);
   document.getElementById('k-expenses').textContent=cur+' '+thisMonthExp.toLocaleString();
-  document.getElementById('k-exp-sub').textContent=(db.expenses||[]).filter(e=>e.date.startsWith('2026-04')).length+' transactions';
-  const monthRev=db.sales.filter(s=>s.date.startsWith('2026-04')).reduce((a,s)=>a+s.total,0);
+  document.getElementById('k-exp-sub').textContent=(db.expenses||[]).filter(e=>e.date.startsWith(TODAY.slice(0,7))).length+' transactions';
+  const monthRev=db.sales.filter(s=>s.date.startsWith(TODAY.slice(0,7))).reduce((a,s)=>a+s.total,0);
   const netProfit=monthRev-thisMonthExp;
   document.getElementById('k-profit').textContent=cur+' '+(netProfit>=0?'+':'')+netProfit.toLocaleString();
   document.getElementById('k-profit').style.color=netProfit>=0?'#16a34a':'#e11d48';
@@ -1392,7 +1392,7 @@ function renderDashboard(){
   document.getElementById('k-profit').style.color=netProfit>=0?'#16a34a':'#e11d48';
   document.getElementById('k-profit-sub').textContent=cur+' '+monthRev.toLocaleString()+' rev − '+cur+' '+thisMonthExp.toLocaleString()+' exp';
   // Weekly revenue bars
-  const wDates=['2026-04-09','2026-04-10','2026-04-11','2026-04-12','2026-04-13','2026-04-14','2026-04-15'];
+  const wDates=Array.from({length:7},(_,i)=>{const d=new Date(TODAY);d.setDate(d.getDate()-(6-i));return d.toISOString().split('T')[0];});
   const wDays=['Wed','Thu','Fri','Sat','Sun','Mon','Tue'];
   const wRevs=wDates.map(d=>db.sales.filter(s=>s.date===d).reduce((a,s)=>a+s.total,0));
   const mx=Math.max(...wRevs,1);
@@ -1448,7 +1448,7 @@ function renderPOS(){
     const svcs=posCat==='All'?db.services:db.services.filter(s=>s.cat===posCat);
     document.getElementById('pos-svcs').innerHTML=svcs.map(s=>{
       const added=billItems.some(b=>b.billId===`svc-${s.id}`);
-      return`<div class="svc-btn ${added?'added':''}" onclick="addServiceToBill(${s.id})">
+      return`<div class="svc-btn ${added?'added':''}" onclick="addServiceToBill('${s.id}')">
         <span class="svc-icon">${s.icon}</span>
         <span class="svc-n">${s.name}</span>
         <span class="svc-p">${cur} ${s.price}</span>
@@ -1462,13 +1462,14 @@ function renderPOS(){
     const prods=posCat==='All'?db.inventory:db.inventory.filter(i=>i.cat===posCat);
     document.getElementById('pos-svcs').innerHTML=prods.map(p=>{
       const outOfStock=p.stock<=0;
-      const sellPrice=p.sellPrice||Math.round(p.price*1.4); // default markup 40%
+      const sellPrice=p.sellPrice||Math.round(p.price*1.4);
       const added=billItems.some(b=>b.billId===`prd-${p.id}`);
-      return`<div class="svc-btn ${added?'added':''} ${outOfStock?'out-of-stock':''}" onclick="${outOfStock?'showToast(\'Out of stock\',\'warn\')':'addProductToBill('+p.id+')'}">
+      const clickHandler=outOfStock?`showToast('Out of stock','warn')`:`addProductToBill('${p.id}')`;
+      return`<div class="svc-btn ${added?'added':''} ${outOfStock?'out-of-stock':''}" onclick="${clickHandler}">
         <span class="svc-icon">${p.isLiquid?'💧':'📦'}</span>
         <span class="svc-n">${p.name}</span>
         <span class="svc-p">${cur} ${sellPrice}</span>
-        <span class="svc-t" style="${outOfStock?'color:#e11d48;font-weight:700':''}">Stock: ${p.stock}${outOfStock?' — OUT':''}</span>
+        <span class="svc-t" style="${outOfStock?'color:#e11d48;font-weight:700':''}">${outOfStock?'Out of stock':'Stock: '+p.stock}</span>
       </div>`;
     }).join('');
   }
@@ -1482,7 +1483,8 @@ function renderPOS(){
 function setPOSCat(c){posCat=c;renderPOS();}
 
 function addServiceToBill(id){
-  const s=db.services.find(x=>x.id===id);if(!s)return;
+  id=String(id);
+  const s=db.services.find(x=>String(x.id)===String(id));if(!s)return;
   const billId=`svc-${id}`;
   const idx=billItems.findIndex(b=>b.billId===billId);
   if(idx>=0)billItems.splice(idx,1);
@@ -1491,7 +1493,8 @@ function addServiceToBill(id){
 }
 
 function addProductToBill(id){
-  const p=db.inventory.find(x=>x.id===id);if(!p)return;
+  id=String(id);
+  const p=db.inventory.find(x=>String(x.id)===String(id));if(!p)return;
   const billId=`prd-${id}`;
   const sellPrice=p.sellPrice||Math.round(p.price*1.4);
   const idx=billItems.findIndex(b=>b.billId===billId);
@@ -1572,7 +1575,7 @@ function checkout(){
   // Deduct product stock + build sale items
   const saleItems=billItems.map(it=>{
     if(it.type==='product'){
-      const inv=db.inventory.find(x=>x.id===it.id);
+      const inv=db.inventory.find(x=>String(x.id)===String(it.id));
       if(inv){
         inv.stock=Math.max(0,inv.stock-(it.qty||1));
         // also deduct from open liquid if applicable
@@ -1620,7 +1623,7 @@ function renderCalendar(){
       const ds=fmtDate(d);
       const ap=db.appointments.find(a=>a.date===ds&&a.slot===ti);
       h+=`<div class="appt-cell" onclick="cellClick('${ds}',${ti})">`;
-      if(ap)h+=`<div class="appt-block" style="background:${ap.color};color:${ap.textColor}" onclick="event.stopPropagation();apptClick(${ap.id})"><div class="appt-name">${ap.customer.split(' ')[0]}</div><div class="appt-svc">${ap.service}</div></div>`;
+      if(ap)h+=`<div class="appt-block" style="background:${ap.color};color:${ap.textColor}" onclick="event.stopPropagation();apptClick('${ap.id}')"><div class="appt-name">${ap.customer.split(' ')[0]}</div><div class="appt-svc">${ap.service}</div></div>`;
       h+='</div>';
     });
   });
@@ -1630,7 +1633,7 @@ function prevWk(){calWeekOffset--;renderCalendar();}
 function nextWk(){calWeekOffset++;renderCalendar();}
 function cellClick(date,slot){showNewAppt(date,slot);}
 function apptClick(id){
-  const a=db.appointments.find(x=>x.id===id);if(!a)return;
+  const a=db.appointments.find(x=>String(x.id)===String(id));if(!a)return;
   showModal(`<div class="modal-title">Appointment</div>
     <div style="margin-bottom:14px">
       <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:4px">${a.customer}</div>
@@ -1641,17 +1644,17 @@ function apptClick(id){
       <select id="ma-status">${['booked','inprogress','done','cancelled'].map(s=>`<option value="${s}" ${a.status===s?'selected':''}>${s}</option>`).join('')}</select>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-danger btn-sm" onclick="deleteAppt(${id})">Cancel Appt</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteAppt('${id}')">Cancel Appt</button>
       <button class="btn" onclick="closeModal()">Close</button>
-      <button class="btn btn-primary" onclick="saveApptStatus(${id})">Update</button>
+      <button class="btn btn-primary" onclick="saveApptStatus('${id}')">Update</button>
     </div>`);
 }
 function saveApptStatus(id){
-  const a=db.appointments.find(x=>x.id===id);const s=document.getElementById('ma-status').value;
+  const a=db.appointments.find(x=>String(x.id)===String(id));const s=document.getElementById('ma-status').value;
   if(a){a.status=s;a.color=APPT_COLORS[s].bg;a.textColor=APPT_COLORS[s].tc;saveDB();dbUpdateApptStatus(id,s);}
   closeModal();renderCalendar();showToast('Status updated');
 }
-function deleteAppt(id){db.appointments=db.appointments.filter(a=>a.id!==id);saveDB();closeModal();renderCalendar();showToast('Appointment cancelled');}
+function deleteAppt(id){db.appointments=db.appointments.filter(a=>String(a.id)!==String(id));saveDB();closeModal();renderCalendar();showToast('Appointment cancelled');}
 function showNewAppt(date,slot){
   const d=date||TODAY;const si=slot!==undefined?slot:0;
   showModal(`<div class="modal-title">Book Appointment</div>
@@ -1666,7 +1669,7 @@ function saveAppt(){
   const cid=document.getElementById('ma-cust').value;
   const cnm=cid?db.customers.find(c=>c.id==cid)?.name||'Walk-in':'Walk-in';
   const sid=parseInt(document.getElementById('ma-svc').value);
-  const svc=db.services.find(s=>s.id===sid);
+  const svc=db.services.find(s=>String(s.id)===String(sid));
   const staff=document.getElementById('ma-staff').value;
   const date=document.getElementById('ma-date').value;
   const slot=parseInt(document.getElementById('ma-slot').value);
@@ -1690,11 +1693,11 @@ function renderCustomers(){
   if(db.customers[0]&&window.innerWidth>640)showCustDetail(db.customers[0].id);
 }
 function renderCustList(list){
-  document.getElementById('cust-items').innerHTML=list.map(c=>`<div class="cust-item ${selCustId===c.id?'sel':''}" onclick="showCustDetail(${c.id})"><div class="avatar" style="width:34px;height:34px;font-size:12px">${c.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><div style="flex:1"><div class="cust-nm">${c.name}</div><div class="cust-ph">${c.phone}</div></div><div class="pts-badge">⭐ ${c.points}pts</div></div>`).join('');
+  document.getElementById('cust-items').innerHTML=list.map(c=>`<div class="cust-item ${selCustId===c.id?'sel':''}" onclick="showCustDetail('${c.id}')"><div class="avatar" style="width:34px;height:34px;font-size:12px">${c.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><div style="flex:1"><div class="cust-nm">${c.name}</div><div class="cust-ph">${c.phone}</div></div><div class="pts-badge">⭐ ${c.points}pts</div></div>`).join('');
 }
 function filterCusts(q){renderCustList(db.customers.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||c.phone.includes(q)));}
 function showCustDetail(id){
-  selCustId=id;const c=db.customers.find(x=>x.id===id);if(!c)return;
+  selCustId=id;const c=db.customers.find(x=>String(x.id)===String(id));if(!c)return;
   const totalSpent=c.visits.reduce((a,v)=>a+v.amount,0);
   const isMobile=window.innerWidth<=640;
   // On mobile: hide list, show detail panel
@@ -1724,7 +1727,7 @@ function showCustDetail(id){
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div class="card-title" style="margin:0">Visit History</div>
-        <button class="btn btn-primary btn-sm" onclick="showEditCustomer(${c.id})">Edit</button>
+        <button class="btn btn-primary btn-sm" onclick="showEditCustomer('${c.id}')">Edit</button>
       </div>
       ${c.visits.map(v=>`<div class="visit-row"><div style="flex:1"><div style="font-weight:700;color:#0f172a;font-size:12px">${v.service}</div><div style="color:#64748b;font-size:11px">${v.staff} · ${v.date}</div></div><div style="font-weight:800;color:#0d9488">${db.settings.currency} ${v.amount}</div></div>`).join('')}
       ${c.visits.length===0?'<div style="color:#94a3b8;font-size:12px;text-align:center;padding:16px">No visits yet</div>':''}
@@ -1738,18 +1741,18 @@ function showCustList(){
   document.getElementById('cust-detail').innerHTML='';
 }
 function showEditCustomer(id){
-  const c=db.customers.find(x=>x.id===id);if(!c)return;
+  const c=db.customers.find(x=>String(x.id)===String(id));if(!c)return;
   showModal(`<div class="modal-title">Edit Customer</div>
     <div class="form-row"><label>Name</label><input type="text" id="ec-name" value="${c.name}"></div>
     <div class="form-row"><label>Phone</label><input type="text" id="ec-phone" value="${c.phone}"></div>
     <div class="form-row"><label>Email</label><input type="email" id="ec-email" value="${c.email}"></div>
     <div class="form-row"><label>Notes</label><input type="text" id="ec-note" value="${c.note||''}"></div>
-    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="updateCustomer(${id})">Save</button></div>`);
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="updateCustomer('${id}')">Save</button></div>`);
 }
 function updateCustomer(id){
-  const c=db.customers.find(x=>x.id===id);if(!c)return;
+  const c=db.customers.find(x=>String(x.id)===String(id));if(!c)return;
   c.name=document.getElementById('ec-name').value;c.phone=document.getElementById('ec-phone').value;c.email=document.getElementById('ec-email').value;c.note=document.getElementById('ec-note').value;
-  saveDB();closeModal();showCustDetail(id);showToast('Customer updated');
+  saveDB();dbUpdateCustomer(c);closeModal();showCustDetail(id);showToast('Customer updated');
 }
 function showAddCustomer(){
   showModal(`<div class="modal-title">Add Customer</div>
@@ -1783,7 +1786,7 @@ function saveStaff(){
   const nm=document.getElementById('ns-name').value.trim();if(!nm){showToast('Name required','warn');return;}
   const colors=['#e11d48','#0d9488','#7c3aed','#d97706','#16a34a','#0ea5e9','#db2777','#f59e0b'];
   const s={id:Date.now(),name:nm,role:document.getElementById('ns-role').value,skills:document.getElementById('ns-skills').value.split(',').map(x=>x.trim()).filter(Boolean),commission:parseInt(document.getElementById('ns-comm').value)||12,color:colors[db.staff.length%colors.length],sales:0,appts:0,userId:null};
-  db.staff.push(s);saveDB();closeModal();renderStaff();showToast('Staff added!');
+  db.staff.push(s);saveDB();dbInsertStaff(s);closeModal();renderStaff();showToast('Staff added!');
 }
 
 // ─── INVENTORY ──────────────────────────────────────────────────
@@ -1852,16 +1855,16 @@ function renderInventory(){
       <td><div style="font-weight:700;color:#0d9488">${cur} ${sellPr}</div><div style="font-size:10px;color:#16a34a">+${margin}%</div></td>
       <td><span class="s-badge ${isLow?'s-cancelled':'s-done'}">${isLow?'Low':'OK'}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="editStock(${item.id})">Edit</button>
-        ${item.isLiquid?`<button class="btn btn-sm" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd" onclick="updateLiquid(${item.id})">💧</button>`:''}
-        <button class="btn btn-primary btn-sm" onclick="quickReceive(${item.id})">+Stock</button>
+        <button class="btn btn-sm" onclick="editStock('${item.id}')">Edit</button>
+        ${item.isLiquid?`<button class="btn btn-sm" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd" onclick="updateLiquid('${item.id}')">💧</button>`:''}
+        <button class="btn btn-primary btn-sm" onclick="quickReceive('${item.id}')">+Stock</button>
       </td>
     </tr>`;
   }).join('');
 }
 
 function editStock(id){
-  const item=db.inventory.find(x=>x.id===id);if(!item)return;
+  const item=db.inventory.find(x=>String(x.id)===String(id));if(!item)return;
   const sellPr=item.sellPrice||Math.round(item.price*1.4);
   showModal(`<div class="modal-title">Edit Product — ${item.name}</div>
     <div class="form-row"><label>Product Name</label><input type="text" id="es-name" value="${item.name}"></div>
@@ -1882,13 +1885,13 @@ function editStock(id){
       <div class="form-row"><label>Currently open bottle (ml remaining)</label><input type="number" id="es-curml" value="${item.currentMl||0}" min="0"></div>
       <div class="form-row"><label>Daily usage (ml/day)</label><input type="number" id="es-daily" value="${item.dailyUsageMl||0}" min="1" step="0.5"></div>
     </div>
-    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveStock(${id})">Save</button></div>`);
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveStock('${id}')">Save</button></div>`);
 }
 function toggleLiqFields(){
   document.getElementById('liq-fields').style.display=document.getElementById('es-isliq').value==='1'?'block':'none';
 }
 function saveStock(id){
-  const item=db.inventory.find(x=>x.id===id);if(!item)return;
+  const item=db.inventory.find(x=>String(x.id)===String(id));if(!item)return;
   item.name=document.getElementById('es-name').value||item.name;
   item.stock=parseInt(document.getElementById('es-stock').value)||0;
   item.minStock=parseInt(document.getElementById('es-min').value)||0;
@@ -1904,7 +1907,7 @@ function saveStock(id){
   saveDB();closeModal();renderInventory();showToast('Product updated');
 }
 function updateLiquid(id){
-  const item=db.inventory.find(x=>x.id===id);if(!item)return;
+  const item=db.inventory.find(x=>String(x.id)===String(id));if(!item)return;
   const info=getLiquidFinishDate(item);
   showModal(`<div class="modal-title">💧 Liquid Tracker — ${item.name}</div>
     <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px;margin-bottom:14px">
@@ -1919,22 +1922,22 @@ function updateLiquid(id){
     <div class="form-row"><label>Update current open bottle (ml)</label><input type="number" id="ul-ml" value="${item.currentMl||0}" min="0" max="${item.volumeMl}"></div>
     <div class="form-row"><label>Daily usage (ml/day)</label><input type="number" id="ul-daily" value="${item.dailyUsageMl||1}" min="0.5" step="0.5"></div>
     <div style="font-size:11px;color:#64748b;margin-bottom:4px">Open new bottle?</div>
-    <button class="btn btn-sm" style="margin-bottom:12px" onclick="openNewBottle(${id})">🆕 Open New Bottle (${item.volumeMl}ml)</button>
-    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveLiquid(${id})">Update</button></div>`);
+    <button class="btn btn-sm" style="margin-bottom:12px" onclick="openNewBottle('${id}')">🆕 Open New Bottle (${item.volumeMl}ml)</button>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveLiquid('${id}')">Update</button></div>`);
 }
 function openNewBottle(id){
-  const item=db.inventory.find(x=>x.id===id);if(!item||item.stock<=0){showToast('No sealed units in stock','warn');return;}
+  const item=db.inventory.find(x=>String(x.id)===String(id));if(!item||item.stock<=0){showToast('No sealed units in stock','warn');return;}
   item.stock-=1;item.currentMl=item.volumeMl;item.openedDate=TODAY;
   saveDB();closeModal();renderInventory();showToast('New bottle opened! Stock updated.');
 }
 function saveLiquid(id){
-  const item=db.inventory.find(x=>x.id===id);if(!item)return;
+  const item=db.inventory.find(x=>String(x.id)===String(id));if(!item)return;
   item.currentMl=parseFloat(document.getElementById('ul-ml').value)||0;
   item.dailyUsageMl=parseFloat(document.getElementById('ul-daily').value)||1;
-  saveDB();closeModal();renderInventory();showToast('Liquid tracker updated');
+  saveDB();dbUpdateProduct(item);closeModal();renderInventory();showToast('Liquid tracker updated');
 }
 function quickReceive(id){
-  const item=db.inventory.find(x=>x.id===id);if(!item)return;
+  const item=db.inventory.find(x=>String(x.id)===String(id));if(!item)return;
   showModal(`<div class="modal-title">Receive Stock — ${item.name}</div>
     <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:#166534">
       Current stock: <b>${item.stock} units</b>${item.isLiquid?` + ${item.currentMl}ml open`:''}
@@ -1946,7 +1949,7 @@ function quickReceive(id){
     <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doQuickReceive(${id})">Receive & Update Stock →</button></div>`);
 }
 function doQuickReceive(id){
-  const item=db.inventory.find(x=>x.id===id);if(!item)return;
+  const item=db.inventory.find(x=>String(x.id)===String(id));if(!item)return;
   const qty=parseInt(document.getElementById('qr-qty').value)||0;
   const cost=parseFloat(document.getElementById('qr-cost').value)||0;
   const sup=document.getElementById('qr-sup').value||item.supplier;
@@ -1991,7 +1994,7 @@ function saveProduct(){
   const sellPrice=parseInt(document.getElementById('np-sellprice').value)||0;
   const p={id:Date.now(),name:nm,cat:document.getElementById('np-cat').value,stock:parseInt(document.getElementById('np-stock').value)||0,minStock:parseInt(document.getElementById('np-min').value)||3,price:costPrice,sellPrice:sellPrice||Math.round(costPrice*1.4),supplier:document.getElementById('np-sup').value||'—',isLiquid};
   if(isLiquid){p.volumeMl=parseFloat(document.getElementById('np-vol').value)||100;p.currentMl=parseFloat(document.getElementById('np-curml').value)||0;p.dailyUsageMl=parseFloat(document.getElementById('np-daily').value)||10;p.openedDate=TODAY;}
-  db.inventory.push(p);saveDB();closeModal();renderInventory();showToast('Product added!');
+  db.inventory.push(p);saveDB();dbInsertProduct(p);closeModal();renderInventory();showToast('Product added!');
 }
 
 // ─── PURCHASES ──────────────────────────────────────────────────
@@ -2031,8 +2034,8 @@ function renderPurBody(){
               <td><b>${cur} ${p.grandTotal.toLocaleString()}</b></td>
               <td><span class="s-badge ${p.status==='received'?'s-done':p.status==='pending'?'s-inprogress':'s-booked'}">${p.status}</span></td>
               <td style="display:flex;gap:4px">
-                <button class="btn btn-sm" onclick="viewPurchase(${p.id})">View</button>
-                ${p.status==='pending'?`<button class="btn btn-primary btn-sm" onclick="receivePurchase(${p.id})">✓ Receive</button>`:''}
+                <button class="btn btn-sm" onclick="viewPurchase('${p.id}')">View</button>
+                ${p.status==='pending'?`<button class="btn btn-primary btn-sm" onclick="receivePurchase('${p.id}')">✓ Receive</button>`:''}
               </td>
             </tr>`).join('')}
           </tbody>
@@ -2053,7 +2056,7 @@ function renderPurBody(){
             <td>${i.supplier}</td>
             <td class="stock-low">${i.stock}</td>
             <td>${i.minStock}</td>
-            <td><input type="number" id="ro-qty-${i.id}" value="${need}" min="1" style="width:60px;padding:4px;border-radius:4px;border:1px solid #e2e8f0;font-size:12px"></td>
+            <td><input type="number" id="ro-qty-${i.id||i.productId}" value="${need}" min="1" style="width:60px;padding:4px;border-radius:4px;border:1px solid #e2e8f0;font-size:12px"></td>
             <td><input type="number" id="ro-cost-${i.id}" value="${i.price}" min="0" style="width:70px;padding:4px;border-radius:4px;border:1px solid #e2e8f0;font-size:12px"></td>
             <td id="ro-total-${i.id}" style="font-weight:700;color:#0d9488">${cur} ${need*i.price}</td>
           </tr>`;}).join('')}</tbody>
@@ -2073,7 +2076,7 @@ function createReorderPO(){
   if(!checked.length){showToast('Select items first','warn');return;}
   const cur=db.settings.currency;
   const items=checked.map(id=>{
-    const item=db.inventory.find(x=>x.id===id);
+    const item=db.inventory.find(x=>String(x.id)===String(id));
     const qty=parseInt(document.getElementById('ro-qty-'+id)?.value)||1;
     const cost=parseFloat(document.getElementById('ro-cost-'+id)?.value)||0;
     return{productId:id,name:item.name,qty,unitCost:cost,total:qty*cost,supplier:item.supplier};
@@ -2088,7 +2091,7 @@ function createReorderPO(){
 }
 
 function viewPurchase(id){
-  const p=db.purchases.find(x=>x.id===id);if(!p)return;
+  const p=db.purchases.find(x=>String(x.id)===String(id));if(!p)return;
   const cur=db.settings.currency;
   showModal(`<div class="modal-title">Purchase Order — ${p.invoiceNo}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:12px">
@@ -2105,14 +2108,14 @@ function viewPurchase(id){
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Close</button>
-      ${p.status==='pending'?`<button class="btn btn-primary" onclick="receivePurchase(${p.id})">✓ Mark as Received</button>`:''}
+      ${p.status==='pending'?`<button class="btn btn-primary" onclick="receivePurchase('${p.id}')">✓ Mark as Received</button>`:''}
     </div>`);
 }
 
 function receivePurchase(id){
-  const p=db.purchases.find(x=>x.id===id);if(!p)return;
+  const p=db.purchases.find(x=>String(x.id)===String(id));if(!p)return;
   if(!confirm('Mark as received? This will add quantities to inventory and update supplier balance.'))return;
-  p.items.forEach(pi=>{const item=db.inventory.find(x=>x.id===pi.productId);if(item)item.stock+=pi.qty;});
+  p.items.forEach(pi=>{const item=db.inventory.find(x=>String(x.id)===String(pi.productId));if(item)item.stock+=pi.qty;});
   p.status='received';
   if(!p.paid)p.paid=0;
   if(p.balance===undefined)p.balance=p.grandTotal-p.paid;
@@ -2127,7 +2130,7 @@ function receivePurchase(id){
     sup.totalPurchased=(sup.totalPurchased||0)+p.grandTotal;
     sup.balance=(sup.balance||0)+p.balance;
   }
-  saveDB();closeModal();renderPurchasePage();renderInventory();
+  saveDB();dbReceivePurchase(p.id);closeModal();renderPurchasePage();renderInventory();
   showToast('Purchase received! Inventory & supplier balance updated ✓');
 }
 
@@ -2158,7 +2161,7 @@ function saveNewPurchase(){
   const status=document.getElementById('np2-status').value;
   if(!sup){showToast('Supplier required','warn');return;}
   if(qty<=0){showToast('Qty must be > 0','warn');return;}
-  const item=db.inventory.find(x=>x.id===prodId);
+  const item=db.inventory.find(x=>String(x.id)===String(prodId));
   const po={id:Date.now(),date,supplier:sup,items:[{productId:prodId,name:item?.name||'Product',qty,unitCost:cost,total:qty*cost}],grandTotal:qty*cost,status,invoiceNo:inv||'PO-'+Date.now().toString().slice(-6)};
   if(status==='received'&&item){item.stock+=qty;}
   if(!db.purchases)db.purchases=[];
@@ -2550,7 +2553,7 @@ function rptPnL(sales,cur){
   const commExpense=db.staff.reduce((a,s)=>a+Math.round(s.sales*s.commission/100),0);
   const purchaseCost=(db.purchases||[]).filter(p=>p.status==='received').reduce((a,p)=>a+p.grandTotal,0);
   const period=getPeriod();
-  const filterDate=(date)=>{if(period==='today')return date===TODAY;if(period==='week'){const d=new Date(TODAY);d.setDate(d.getDate()-6);return date>=fmtDate(d)&&date<=TODAY;}if(period==='month')return date.startsWith('2026-04');return true;};
+  const filterDate=(date)=>{if(period==='today')return date===TODAY;if(period==='week'){const d=new Date(TODAY);d.setDate(d.getDate()-6);return date>=fmtDate(d)&&date<=TODAY;}if(period==='month')return date.startsWith(TODAY.slice(0,7));return true;};
   const periodExpenses=(db.expenses||[]).filter(e=>filterDate(e.date));
   const totalExpenses=periodExpenses.reduce((a,e)=>a+e.amount,0);
   const netProfit=grossProfit-commExpense-totalExpenses;
@@ -2614,8 +2617,8 @@ function renderSupBody(){
           <td><span style="color:${s.balance>0?'#e11d48':'#16a34a'};font-weight:700">${cur} ${(s.balance||0).toLocaleString()}</span></td>
           <td style="font-size:11px;color:#64748b">${s.notes||'—'}</td>
           <td style="display:flex;gap:4px">
-            <button class="btn btn-sm" onclick="showEditSupplier(${s.id})">Edit</button>
-            <button class="btn btn-primary btn-sm" onclick="showPaySupplier(${s.id})">Pay</button>
+            <button class="btn btn-sm" onclick="showEditSupplier('${s.id}')">Edit</button>
+            <button class="btn btn-primary btn-sm" onclick="showPaySupplier('${s.id}')">Pay</button>
           </td>
         </tr>`).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:#94a3b8">No suppliers yet</td></tr>'}
         </tbody>
@@ -2634,7 +2637,7 @@ function renderSupBody(){
           </div>
           <div style="text-align:right">
             <div style="font-size:16px;font-weight:800;color:#e11d48">${cur} ${s.balance.toLocaleString()}</div>
-            <button class="btn btn-primary btn-sm" onclick="showPaySupplier(${s.id})" style="margin-top:4px">Pay Now</button>
+            <button class="btn btn-primary btn-sm" onclick="showPaySupplier('${s.id}')" style="margin-top:4px">Pay Now</button>
           </div>
         </div>`).join('')}
     </div>
@@ -2683,24 +2686,24 @@ function saveSupplier(){
   const nm=document.getElementById('ns-name').value.trim();if(!nm){showToast('Name required','warn');return;}
   if(!db.suppliers)db.suppliers=[];
   db.suppliers.push({id:Date.now(),name:nm,contact:document.getElementById('ns-contact').value||'',email:document.getElementById('ns-email').value||'',balance:0,totalPurchased:0,notes:document.getElementById('ns-notes').value||''});
-  saveDB();closeModal();renderSuppliers();showToast('Supplier added!');
+  saveDB();dbInsertSupplier(sup);closeModal();renderSuppliers();showToast('Supplier added!');
 }
 function showEditSupplier(id){
-  const s=db.suppliers.find(x=>x.id===id);if(!s)return;
+  const s=db.suppliers.find(x=>String(x.id)===String(id));if(!s)return;
   showModal(`<div class="modal-title">Edit Supplier — ${s.name}</div>
     <div class="form-row"><label>Name</label><input type="text" id="es-sname" value="${s.name}"></div>
     <div class="form-row"><label>Contact</label><input type="text" id="es-scontact" value="${s.contact||''}"></div>
     <div class="form-row"><label>Email</label><input type="email" id="es-semail" value="${s.email||''}"></div>
     <div class="form-row"><label>Notes</label><input type="text" id="es-snotes" value="${s.notes||''}"></div>
-    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="updateSupplier(${id})">Save</button></div>`);
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="updateSupplier('${id}')">Save</button></div>`);
 }
 function updateSupplier(id){
-  const s=db.suppliers.find(x=>x.id===id);if(!s)return;
+  const s=db.suppliers.find(x=>String(x.id)===String(id));if(!s)return;
   s.name=document.getElementById('es-sname').value;s.contact=document.getElementById('es-scontact').value;s.email=document.getElementById('es-semail').value;s.notes=document.getElementById('es-snotes').value;
-  saveDB();closeModal();renderSuppliers();showToast('Supplier updated');
+  saveDB();dbUpdateSupplier(sup);closeModal();renderSuppliers();showToast('Supplier updated');
 }
 function showPaySupplier(id){
-  const s=db.suppliers.find(x=>x.id===id);if(!s)return;
+  const s=db.suppliers.find(x=>String(x.id)===String(id));if(!s)return;
   showModal(`<div class="modal-title">Pay Supplier — ${s.name}</div>
     <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px">
       Outstanding balance: <b style="color:#e11d48">${db.settings.currency} ${s.balance.toLocaleString()}</b>
@@ -2708,10 +2711,10 @@ function showPaySupplier(id){
     <div class="form-row"><label>Payment Amount (${db.settings.currency})</label><input type="number" id="pay-amt" value="${s.balance}" min="0"></div>
     <div class="form-row"><label>Payment Method</label><select id="pay-method"><option>Cash</option><option>Bank Transfer</option><option>Cheque</option><option>Online</option></select></div>
     <div class="form-row"><label>Note</label><input type="text" id="pay-note" placeholder="Reference or note"></div>
-    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="paySupplier(${id})">Record Payment →</button></div>`);
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="paySupplier('${id}')">Record Payment →</button></div>`);
 }
 function paySupplier(id){
-  const s=db.suppliers.find(x=>x.id===id);if(!s)return;
+  const s=db.suppliers.find(x=>String(x.id)===String(id));if(!s)return;
   const amt=parseFloat(document.getElementById('pay-amt').value)||0;
   if(amt<=0){showToast('Enter valid amount','warn');return;}
   s.balance=Math.max(0,s.balance-amt);
@@ -2722,18 +2725,18 @@ function paySupplier(id){
     const pay=Math.min(remaining,p.balance||0);
     p.paid=(p.paid||0)+pay;p.balance=(p.balance||0)-pay;remaining-=pay;
   });
-  saveDB();closeModal();renderSuppliers();showToast(`Payment of ${db.settings.currency} ${amt} recorded for ${s.name}`);
+  saveDB();dbUpdateSupplier(sup);closeModal();renderSuppliers();showToast(`Payment of ${db.settings.currency} ${amt} recorded for ${s.name}`);
 }
 
 // Update purchase receipt to also update supplier balance
 function receivePurchaseAndUpdateSupplier(id){
-  const p=db.purchases.find(x=>x.id===id);if(!p)return;
+  const p=db.purchases.find(x=>String(x.id)===String(id));if(!p)return;
   if(!confirm('Mark as received? This will add quantities to inventory stock.'))return;
-  p.items.forEach(pi=>{const item=db.inventory.find(x=>x.id===pi.productId);if(item)item.stock+=pi.qty;});
+  p.items.forEach(pi=>{const item=db.inventory.find(x=>String(x.id)===String(pi.productId));if(item)item.stock+=pi.qty;});
   p.status='received';
   // Update supplier totals
   if(db.suppliers){
-    const sup=db.suppliers.find(s=>s.name===p.supplier||s.id===p.supplierId);
+    const sup=db.suppliers.find(s=>s.name===p.supplier||String(s.id)===String(p.supplierId));
     if(sup){sup.totalPurchased=(sup.totalPurchased||0)+p.grandTotal;sup.balance=(sup.balance||0)+(p.balance||p.grandTotal);}
   }
   saveDB();closeModal();renderPurchasePage();renderInventory();
@@ -2748,7 +2751,7 @@ function renderExpenses(){
   if(!db.expenses)db.expenses=[];
   const cur=db.settings.currency;
   const total=db.expenses.reduce((a,e)=>a+e.amount,0);
-  const thisMonth=db.expenses.filter(e=>e.date.startsWith('2026-04')).reduce((a,e)=>a+e.amount,0);
+  const thisMonth=db.expenses.filter(e=>e.date.startsWith(TODAY.slice(0,7))).reduce((a,e)=>a+e.amount,0);
   const recurring=db.expenses.filter(e=>e.recurring).reduce((a,e)=>a+e.amount,0);
   const catMap={};db.expenses.forEach(e=>catMap[e.category]=(catMap[e.category]||0)+e.amount);
   const topCat=Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
@@ -2779,7 +2782,7 @@ function renderExpBody(){
           <td><span class="s-badge s-booked">${e.payment}</span></td>
           <td style="text-align:center">${e.recurring?'<span style="color:#16a34a;font-weight:700">✓ Yes</span>':'—'}</td>
           <td style="font-weight:800;color:#e11d48">${cur} ${e.amount.toLocaleString()}</td>
-          <td><button class="btn btn-danger btn-sm" onclick="deleteExpense(${e.id})">Delete</button></td>
+          <td><button class="btn btn-danger btn-sm" onclick="deleteExpense('${e.id}')">Delete</button></td>
         </tr>`).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:#94a3b8">No expenses yet</td></tr>'}
         </tbody>
       </table>
@@ -2849,7 +2852,7 @@ function saveExpense(){
 }
 function deleteExpense(id){
   if(!confirm('Delete this expense?'))return;
-  db.expenses=db.expenses.filter(e=>e.id!==id);saveDB();renderExpenses();showToast('Expense deleted');
+  db.expenses=db.expenses.filter(e=>String(e.id)!==String(id));saveDB();renderExpenses();showToast('Expense deleted');
 }
 
 // ─── ONLINE BOOKING ──────────────────────────────────────────────
@@ -2924,8 +2927,8 @@ function renderBookOverview(){
             <div style="font-size:11px;color:#64748b">${r.service} · ${r.preferredDate} ${r.preferredTime}</div>
           </div>
           <div style="display:flex;gap:4px">
-            <button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0;font-size:11px" onclick="confirmBooking(${r.id})">✓ Confirm</button>
-            <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-size:11px" onclick="rejectBooking(${r.id})">✗</button>
+            <button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0;font-size:11px" onclick="confirmBooking('${r.id}')">✓ Confirm</button>
+            <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-size:11px" onclick="rejectBooking('${r.id}')">✗</button>
           </div>
         </div>`).join('')}
     </div>
@@ -2967,9 +2970,9 @@ function renderBookRequests(){
           <td><div style="font-size:11px">${r.phone||''}</div><div style="font-size:11px;color:#0369a1">${r.email||''}</div></td>
           <td><span class="s-badge ${statusColors[r.status]||'s-booked'}">${r.status}</span></td>
           <td style="display:flex;gap:4px">
-            ${r.status==='pending'?`<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0" onclick="confirmBooking(${r.id})">✓ Confirm</button><button class="btn btn-danger btn-sm" onclick="rejectBooking(${r.id})">✗</button>`:''}
-            ${r.status==='confirmed'?`<button class="btn btn-primary btn-sm" onclick="openBookingInCalendar(${r.id})">View</button>`:''}
-            ${r.phone?`<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0" onclick="whatsappBooking(${r.id})">WhatsApp</button>`:''}
+            ${r.status==='pending'?`<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0" onclick="confirmBooking('${r.id}')">✓ Confirm</button><button class="btn btn-danger btn-sm" onclick="rejectBooking('${r.id}')">✗</button>`:''}
+            ${r.status==='confirmed'?`<button class="btn btn-primary btn-sm" onclick="openBookingInCalendar('${r.id}')">View</button>`:''}
+            ${r.phone?`<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0" onclick="whatsappBooking('${r.id}')">WhatsApp</button>`:''}
           </td>
         </tr>`).join('')}
       </tbody>
@@ -2994,8 +2997,8 @@ function filterBookReqs(f,el){
       <td><div style="font-size:11px">${r.phone||''}</div><div style="font-size:11px;color:#0369a1">${r.email||''}</div></td>
       <td><span class="s-badge ${statusColors[r.status]||'s-booked'}">${r.status}</span></td>
       <td style="display:flex;gap:4px">
-        ${r.status==='pending'?`<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0" onclick="confirmBooking(${r.id})">✓ Confirm</button><button class="btn btn-danger btn-sm" onclick="rejectBooking(${r.id})">✗</button>`:''}
-        ${r.phone?`<button class="btn btn-sm" style="background:#dcfce7;color:#166634;border-color:#bbf7d0" onclick="whatsappBooking(${r.id})">WA</button>`:''}
+        ${r.status==='pending'?`<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0" onclick="confirmBooking('${r.id}')">✓ Confirm</button><button class="btn btn-danger btn-sm" onclick="rejectBooking('${r.id}')">✗</button>`:''}
+        ${r.phone?`<button class="btn btn-sm" style="background:#dcfce7;color:#166634;border-color:#bbf7d0" onclick="whatsappBooking('${r.id}')">WA</button>`:''}
       </td>
     </tr>`).join('');
 }
@@ -3254,7 +3257,7 @@ function toggleBooking(){
 }
 
 function confirmBooking(id){
-  const r=db.bookingRequests.find(x=>x.id===id);if(!r)return;
+  const r=db.bookingRequests.find(x=>String(x.id)===String(id));if(!r)return;
   r.status='confirmed';
   // Auto-add to appointments
   const svc=db.services.find(s=>s.name===r.service);
@@ -3268,6 +3271,10 @@ function confirmBooking(id){
   saveDB();renderBookingAdmin();
   // Sync confirmed status back to website API
   syncStatusToAPI(r.externalId||r.id,'confirmed');
+  // Sync to Supabase
+  dbUpdateBookingStatus(r.id,'confirmed');
+  dbInsertAppointment(db.appointments[db.appointments.length-1]);
+  if(!db.customers.find(c=>c.name===r.customerName&&c._synced)) dbInsertCustomer(cust);
   showToast('✓ Confirmed & added to appointments!');
   // Send WhatsApp notification if number configured
   if(db.bookingSettings?.whatsapp){
@@ -3277,7 +3284,7 @@ function confirmBooking(id){
 }
 
 function rejectBooking(id){
-  const r=db.bookingRequests.find(x=>x.id===id);if(!r)return;
+  const r=db.bookingRequests.find(x=>String(x.id)===String(id));if(!r)return;
   if(!confirm('Reject this booking request?'))return;
   r.status='rejected';saveDB();
   syncStatusToAPI(r.externalId||r.id,'rejected');
@@ -3287,12 +3294,12 @@ function rejectBooking(id){
 }
 
 function openBookingInCalendar(id){
-  const r=db.bookingRequests.find(x=>x.id===id);if(!r)return;
+  const r=db.bookingRequests.find(x=>String(x.id)===String(id));if(!r)return;
   navTo('appointments');showToast('Showing appointments for '+r.preferredDate);
 }
 
 function whatsappBooking(id){
-  const r=db.bookingRequests.find(x=>x.id===id);if(!r||!r.phone)return;
+  const r=db.bookingRequests.find(x=>String(x.id)===String(id));if(!r||!r.phone)return;
   const bs=db.bookingSettings||{};
   const msg=r.status==='pending'
     ?`Hello ${r.customerName}! Your booking request for ${r.service} on ${r.preferredDate} at ${r.preferredTime} has been received. We will confirm shortly. — ${bs.salonName||'SRP Sports Recovery Point'}`
@@ -3556,9 +3563,9 @@ function renderAttBody(){
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
           <span style="background:${statusBg[status]};color:${statusClr[status]};padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;text-transform:capitalize">${status==='not-marked'?'Not Marked':status.replace('-',' ')}</span>
           <div style="display:flex;gap:4px">
-            <button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0" onclick="markAttendance(${s.id},'${selDate}','present')">✓ In</button>
-            <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5" onclick="markAttendance(${s.id},'${selDate}','absent')">✗ Absent</button>
-            <button class="btn btn-sm" onclick="markCheckOut(${s.id},'${selDate}')">Out</button>
+            <button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0" onclick="markAttendance('${s.id}','${selDate}','present')">✓ In</button>
+            <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5" onclick="markAttendance('${s.id}','${selDate}','absent')">✗ Absent</button>
+            <button class="btn btn-sm" onclick="markCheckOut('${s.id}','${selDate}')">Out</button>
           </div>
         </div>
       </div>`;
@@ -3583,10 +3590,10 @@ function renderAttBody(){
     </div>`;
   } else if(attTab==='summary'){
     // Monthly summary per staff
-    const month='2026-04';
+    const month=TODAY.slice(0,7);
     const monthRecs=db.attendance.filter(a=>a.date.startsWith(month));
     el.innerHTML=`<div class="card">
-      <div class="card-title">Monthly Summary — April 2026</div>
+      <div class="card-title">Monthly Summary — ${new Date().toLocaleString('en-GB',{month:'long',year:'numeric'})}</div>
       ${db.staff.map(s=>{
         const recs=monthRecs.filter(r=>r.staffId===s.id);
         const present=recs.filter(r=>r.status==='present').length;
@@ -3618,8 +3625,8 @@ function renderAttBody(){
 
 function markAttendance(staffId,date,status){
   if(!db.attendance)db.attendance=[];
-  const s=db.staff.find(x=>x.id===staffId);if(!s)return;
-  const existing=db.attendance.find(a=>a.staffId===staffId&&a.date===date);
+  const s=db.staff.find(x=>String(x.id)===String(staffId));if(!s)return;
+  const existing=db.attendance.find(a=>String(a.staffId)===String(staffId)&&a.date===date);
   const now=new Date();
   const timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   let _attRec;
@@ -3631,7 +3638,7 @@ function markAttendance(staffId,date,status){
 
 function markCheckOut(staffId,date){
   if(!db.attendance)db.attendance=[];
-  const rec=db.attendance.find(a=>a.staffId===staffId&&a.date===date);
+  const rec=db.attendance.find(a=>String(a.staffId)===String(staffId)&&a.date===date);
   if(!rec||!rec.checkIn){showToast('Check in first','warn');return;}
   const now=new Date();
   const timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
@@ -3642,7 +3649,7 @@ function markCheckOut(staffId,date){
   rec.hoursWorked=Math.round(((oh*60+om)-(ih*60+im))/60*10)/10;
   saveDB();dbUpsertAttendance(rec);
   renderAttendance();
-  const s=db.staff.find(x=>x.id===staffId);
+  const s=db.staff.find(x=>String(x.id)===String(staffId));
   showToast((s?.name||'Staff')+' checked out · '+rec.hoursWorked+'h worked');
 }
 
@@ -3675,9 +3682,9 @@ function checkInOut(){
           <div style="font-size:11px;color:#64748b">${rec?.checkIn?'In: '+rec.checkIn+(rec.checkOut?' · Out: '+rec.checkOut+' · '+rec.hoursWorked+'h':''):status}</div>
         </div>
         <div style="display:flex;gap:5px">
-          ${!rec?.checkIn?`<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0" onclick="markAttendance(${s.id},'${TODAY}','present');closeModal();renderAttendance()">✓ In</button>`:''}
-          ${isIn?`<button class="btn btn-sm" style="background:#fef9c3;color:#92400e;border-color:#fde68a" onclick="markCheckOut(${s.id},'${TODAY}');closeModal();renderAttendance()">Out</button>`:''}
-          ${!rec?.checkIn?`<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5" onclick="markAttendance(${s.id},'${TODAY}','absent');closeModal();renderAttendance()">✗ Absent</button>`:''}
+          ${!rec?.checkIn?`<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border-color:#bbf7d0" onclick="markAttendance('${s.id}','${TODAY}','present');closeModal();renderAttendance()">✓ In</button>`:''}
+          ${isIn?`<button class="btn btn-sm" style="background:#fef9c3;color:#92400e;border-color:#fde68a" onclick="markCheckOut('${s.id}','${TODAY}');closeModal();renderAttendance()">Out</button>`:''}
+          ${!rec?.checkIn?`<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5" onclick="markAttendance('${s.id}','${TODAY}','absent');closeModal();renderAttendance()">✗ Absent</button>`:''}
           ${isDone?`<span style="font-size:11px;color:#16a34a;font-weight:700">✓ Done ${rec.hoursWorked}h</span>`:''}
         </div>
       </div>`;
@@ -3709,8 +3716,8 @@ function renderEmployees(){
       <td style="color:#64748b;font-size:11px">${u.role}</td>
       <td><span class="s-badge ${u.active!==false?'s-done':'s-cancelled'}">${u.active!==false?'Active':'Inactive'}</span></td>
       <td style="display:flex;gap:4px">
-        <button class="btn btn-sm" onclick="showEditEmployee(${u.id})">Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="toggleEmployee(${u.id})">${u.active!==false?'Disable':'Enable'}</button>
+        <button class="btn btn-sm" onclick="showEditEmployee('${u.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="toggleEmployee('${u.id}')">${u.active!==false?'Disable':'Enable'}</button>
       </td>
     </tr>`).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:#94a3b8;font-size:12px">No employees yet. Click "+ Add Employee"</td></tr>';
 }
@@ -3738,27 +3745,27 @@ function saveEmployee(){
   if(!nm||!un||!pw){showToast('All fields required','warn');return;}
   if(db.users.find(u=>u.username===un)){showToast('Username already exists','warn');return;}
   db.users.push({id:Date.now(),username:un,password:pw,name:nm,role:document.getElementById('ae-role').value,active:true});
-  saveDB();closeModal();renderEmployees();showToast('Employee added! They can now log in.');
+  const _newEmp=db.users[db.users.length-1];saveDB();dbInsertEmployee(_newEmp);closeModal();renderEmployees();showToast('Employee added! They can now log in.');
 }
 function showEditEmployee(id){
-  const u=db.users.find(x=>x.id===id);if(!u)return;
+  const u=db.users.find(x=>String(x.id)===String(id));if(!u)return;
   showModal(`<div class="modal-title">Edit Employee</div>
     <div class="form-row"><label>Full Name</label><input type="text" id="ee-name" value="${u.name}"></div>
     <div class="form-row"><label>Username</label><input type="text" id="ee-user" value="${u.username}"></div>
     <div class="form-row"><label>New Password (leave blank to keep)</label><input type="password" id="ee-pass" placeholder="New password"></div>
     <div class="form-row"><label>Role</label><select id="ee-role"><option value="staff" ${u.role==='staff'?'selected':''}>Staff</option><option value="cashier" ${u.role==='cashier'?'selected':''}>Cashier</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option></select></div>
-    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="updateEmployee(${id})">Save</button></div>`);
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="updateEmployee('${id}')">Save</button></div>`);
 }
 function updateEmployee(id){
-  const u=db.users.find(x=>x.id===id);if(!u)return;
+  const u=db.users.find(x=>String(x.id)===String(id));if(!u)return;
   u.name=document.getElementById('ee-name').value;
   u.username=document.getElementById('ee-user').value;
   const np=document.getElementById('ee-pass').value;if(np)u.password=np;
   u.role=document.getElementById('ee-role').value;
-  saveDB();closeModal();renderEmployees();showToast('Employee updated');
+  saveDB();dbUpdateEmployee(db.users.find(u=>u.id===id));closeModal();renderEmployees();showToast('Employee updated');
 }
 function toggleEmployee(id){
-  const u=db.users.find(x=>x.id===id);if(!u)return;
+  const u=db.users.find(x=>String(x.id)===String(id));if(!u)return;
   u.active=!u.active;saveDB();renderEmployees();showToast(u.active?'Employee enabled':'Employee disabled');
 }
 
@@ -3773,8 +3780,8 @@ function renderAdminServices(){
       <td style="font-weight:700;color:#0d9488">${db.settings.currency} ${s.price}</td>
       <td style="color:#64748b">${s.duration} min</td>
       <td style="display:flex;gap:4px">
-        <button class="btn btn-sm" onclick="showEditService(${s.id})">Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteService(${s.id})">Delete</button>
+        <button class="btn btn-sm" onclick="showEditService('${s.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteService('${s.id}')">Delete</button>
       </td>
     </tr>`).join('');
 }
@@ -3790,27 +3797,27 @@ function showAddService(){
 function saveService(){
   const nm=document.getElementById('ns-name').value.trim();if(!nm){showToast('Name required','warn');return;}
   db.services.push({id:Date.now(),name:nm,cat:document.getElementById('ns-cat').value,price:parseInt(document.getElementById('ns-price').value)||0,duration:parseInt(document.getElementById('ns-dur').value)||30,icon:document.getElementById('ns-icon').value||'💅'});
-  saveDB();closeModal();renderAdminServices();showToast('Service added to POS!');
+  saveDB();dbInsertService(svc);closeModal();renderAdminServices();showToast('Service added to POS!');
 }
 function showEditService(id){
-  const s=db.services.find(x=>x.id===id);if(!s)return;
+  const s=db.services.find(x=>String(x.id)===String(id));if(!s)return;
   showModal(`<div class="modal-title">Edit Service</div>
     <div class="form-row"><label>Service Name</label><input type="text" id="es-name" value="${s.name}"></div>
     <div class="form-row"><label>Category</label><select id="es-cat">${db.categories.map(c=>`<option ${c===s.cat?'selected':''}>${c}</option>`).join('')}</select></div>
     <div class="form-row"><label>Price (${db.settings.currency})</label><input type="number" id="es-price" value="${s.price}" min="0"></div>
     <div class="form-row"><label>Duration (minutes)</label><input type="number" id="es-dur" value="${s.duration}" min="5"></div>
     <div class="form-row"><label>Icon</label><input type="text" id="es-icon" value="${s.icon}" maxlength="4" style="font-size:20px;width:80px"></div>
-    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="updateService(${id})">Save</button></div>`);
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="updateService('${id}')">Save</button></div>`);
 }
 function updateService(id){
-  const s=db.services.find(x=>x.id===id);if(!s)return;
+  const s=db.services.find(x=>String(x.id)===String(id));if(!s)return;
   s.name=document.getElementById('es-name').value;s.cat=document.getElementById('es-cat').value;
   s.price=parseInt(document.getElementById('es-price').value)||0;s.duration=parseInt(document.getElementById('es-dur').value)||30;s.icon=document.getElementById('es-icon').value||'💅';
-  saveDB();closeModal();renderAdminServices();showToast('Service updated!');
+  saveDB();dbUpdateService(svc);closeModal();renderAdminServices();showToast('Service updated!');
 }
 function deleteService(id){
   if(!confirm('Delete this service from POS?'))return;
-  db.services=db.services.filter(s=>s.id!==id);saveDB();renderAdminServices();showToast('Service deleted');
+  db.services=db.services.filter(s=>String(s.id)!==String(id));saveDB();renderAdminServices();showToast('Service deleted');
 }
 
 // CATEGORIES
@@ -3844,7 +3851,7 @@ function saveSettings(){
   db.settings.currency=document.getElementById('set-currency').value;
   db.settings.tax=parseInt(document.getElementById('set-tax').value)||0;
   db.settings.pts=parseInt(document.getElementById('set-pts').value)||1;
-  saveDB();showToast('Settings saved!');
+  saveDB();dbUpdateSettings(db.settings);showToast('Settings saved!');
 }
 
 // ─── INVOICE ─────────────────────────────────────────────────────
@@ -4065,6 +4072,139 @@ _${salonName}_`;
     ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
     : `https://wa.me/?text=${encodeURIComponent(msg)}`;
   window.open(url,'_blank');
+}
+
+// ─── SUPABASE MISSING WRITES ─────────────────────────────────────
+
+async function dbInsertStaff(s){
+  if(!supaConnected)return;
+  try{await supa.insert('staff',{salon_id:SALON_ID,name:s.name,role:s.role,
+    color:s.color||'#e11d48',commission_pct:s.commission||10,
+    skills:s.skills||[],is_active:true});}
+  catch(e){console.error('dbInsertStaff:',e.message);}
+}
+
+async function dbUpdateStaff(s){
+  if(!supaConnected||!s.id)return;
+  try{await supa.update('staff',s.id,{name:s.name,role:s.role,
+    color:s.color,commission_pct:s.commission,skills:s.skills||[],
+    is_active:s.active!==false});}
+  catch(e){console.error('dbUpdateStaff:',e.message);}
+}
+
+async function dbInsertProduct(p){
+  if(!supaConnected)return;
+  try{await supa.insert('products',{salon_id:SALON_ID,name:p.name,
+    category:p.cat||'General',cost_price:p.price||0,sell_price:p.sellPrice||0,
+    stock_qty:p.stock||0,min_stock:p.minStock||3,unit:p.unit||'piece',
+    is_liquid:p.isLiquid||false,volume_ml:p.volumeMl||null,
+    current_ml:p.currentMl||null,daily_usage_ml:p.dailyUsageMl||null,
+    opened_date:p.openedDate||null,is_active:true});}
+  catch(e){console.error('dbInsertProduct:',e.message);}
+}
+
+async function dbUpdateProduct(p){
+  if(!supaConnected||!p.id)return;
+  try{await supa.update('products',p.id,{name:p.name,category:p.cat,
+    cost_price:p.price,sell_price:p.sellPrice,stock_qty:p.stock,
+    min_stock:p.minStock,is_liquid:p.isLiquid||false,
+    volume_ml:p.volumeMl||null,current_ml:p.currentMl||null,
+    daily_usage_ml:p.dailyUsageMl||null,opened_date:p.openedDate||null});}
+  catch(e){console.error('dbUpdateProduct:',e.message);}
+}
+
+async function dbUpdateProductStock(id,stock){
+  if(!supaConnected||!id)return;
+  try{await supa.update('products',id,{stock_qty:stock});}
+  catch(e){console.error('dbUpdateProductStock:',e.message);}
+}
+
+async function dbInsertService(s){
+  if(!supaConnected)return;
+  try{
+    const cat=await supa.get('service_categories',{filter:`name=eq.${encodeURIComponent(s.cat||'General')}`});
+    await supa.insert('services',{salon_id:SALON_ID,name:s.name,
+      price:s.price||0,duration_min:s.duration||60,icon:s.icon||'💅',
+      category_id:cat[0]?.id||null,is_active:true,show_online:true});}
+  catch(e){console.error('dbInsertService:',e.message);}
+}
+
+async function dbUpdateService(s){
+  if(!supaConnected||!s.id)return;
+  try{await supa.update('services',s.id,{name:s.name,price:s.price,
+    duration_min:s.duration,icon:s.icon,is_active:true});}
+  catch(e){console.error('dbUpdateService:',e.message);}
+}
+
+async function dbDeleteService(id){
+  if(!supaConnected||!id)return;
+  try{await supa.update('services',id,{is_active:false});}
+  catch(e){console.error('dbDeleteService:',e.message);}
+}
+
+async function dbInsertSupplier(s){
+  if(!supaConnected)return;
+  try{await supa.insert('suppliers',{salon_id:SALON_ID,name:s.name,
+    phone:s.contact||null,email:s.email||null,notes:s.notes||null,
+    balance_owed:0,total_purchased:0,is_active:true});}
+  catch(e){console.error('dbInsertSupplier:',e.message);}
+}
+
+async function dbUpdateSupplier(s){
+  if(!supaConnected||!s.id)return;
+  try{await supa.update('suppliers',s.id,{name:s.name,phone:s.contact||null,
+    email:s.email||null,notes:s.notes||null,
+    balance_owed:s.balance||0,total_purchased:s.totalPurchased||0});}
+  catch(e){console.error('dbUpdateSupplier:',e.message);}
+}
+
+async function dbUpdateCustomer(c){
+  if(!supaConnected||!c.id)return;
+  try{await supa.update('customers',c.id,{name:c.name,phone:c.phone||null,
+    email:c.email||null,notes:c.note||null,loyalty_points:c.points||0});}
+  catch(e){console.error('dbUpdateCustomer:',e.message);}
+}
+
+async function dbUpdateAppointment(a){
+  if(!supaConnected||!a.id)return;
+  try{const TIMES=['9:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+    await supa.update('appointments',a.id,{customer_name:a.customer,
+      service_name:a.service,staff_name:a.staff,date:a.date,
+      time_slot:TIMES[a.slot]||'9:00',status:a.status});}
+  catch(e){console.error('dbUpdateAppointment:',e.message);}
+}
+
+async function dbDeleteAppointment(id){
+  if(!supaConnected||!id)return;
+  try{await supa.update('appointments',id,{status:'cancelled'});}
+  catch(e){console.error('dbDeleteAppointment:',e.message);}
+}
+
+async function dbReceivePurchase(id){
+  if(!supaConnected||!id)return;
+  try{await supa.update('purchases',id,{status:'received'});}
+  catch(e){console.error('dbReceivePurchase:',e.message);}
+}
+
+async function dbInsertEmployee(u){
+  if(!supaConnected)return;
+  try{await supa.insert('users',{salon_id:SALON_ID,username:u.username,
+    password_hash:u.password,name:u.name,role:u.role||'staff',is_active:true});}
+  catch(e){console.error('dbInsertEmployee:',e.message);}
+}
+
+async function dbUpdateEmployee(u){
+  if(!supaConnected||!u.id)return;
+  try{await supa.update('users',u.id,{name:u.name,role:u.role,
+    is_active:u.active!==false});}
+  catch(e){console.error('dbUpdateEmployee:',e.message);}
+}
+
+async function dbUpdateSettings(settings){
+  if(!supaConnected)return;
+  try{await supa.update('salons',SALON_ID,{name:settings.name,currency:settings.currency,
+    settings:JSON.stringify({tax:settings.tax,loyaltyPointsPer:settings.pts})});}
+  catch(e){console.error('dbUpdateSettings:',e.message);}
 }
 
 // ─── MODAL & TOAST ──────────────────────────────────────────────
