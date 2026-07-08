@@ -1058,14 +1058,7 @@ const seed = {
   appointments:[],
   sales:[],
   appointments:[],
-  sales:[
-    {id:2,date:'2026-04-15',customer:'Walk-in',items:[{type:'service',service:'Eyebrows',price:60,cost:0,staff:'Noura Al-Sayed'}],total:60,payment:'cash'},
-    {id:3,date:'2026-04-14',customer:'Layla',items:[{type:'service',service:'Massage',price:300,cost:0,staff:'Sara Hassan'}],total:300,payment:'card'},
-    {id:4,date:'2026-04-13',customer:'Mariam',items:[{type:'service',service:'Gel Nails',price:200,cost:65,staff:'Lara Khalid'}],total:200,payment:'cash'},
-    {id:5,date:'2026-04-12',customer:'Walk-in',items:[{type:'service',service:'Facial',price:250,cost:0,staff:'Noura Al-Sayed'}],total:250,payment:'card'},
-    {id:6,date:'2026-04-11',customer:'Fatima',items:[{type:'service',service:'Highlights',price:450,cost:30,staff:'Aisha Rahman'}],total:450,payment:'card'},
-    {id:7,date:'2026-04-10',customer:'Walk-in',items:[{type:'product',service:'Olaplex No.3',price:185,cost:140,staff:'Aisha Rahman',productId:1}],total:185,payment:'cash'},
-  ]
+  
 };
 
 function loadDB(){try{const r=localStorage.getItem(DB_KEY);if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(seed));}
