@@ -1049,79 +1049,16 @@ const seed = {
     {id:4,name:'Aris Armani Dulmazid',role:'Therapist',skills:['Massage','VIP Massage'],commission:15,color:'#d97706',sales:0,appts:0,userId:null},
     {id:5,name:'Agim Sugan Jamur',role:'Therapist',skills:['Massage','VIP Massage'],commission:15,color:'#16a34a',sales:0,appts:0,userId:null},
   ],
-  customers:[
-    {id:1,name:'Fatima Al-Dosari',phone:'+974 5512 3456',email:'fatima@email.com',points:240,visits:[
-      {date:'2026-04-15',service:'Haircut + Color',amount:470,staff:'Aisha Rahman'},
-      {date:'2026-03-22',service:'Manicure',amount:100,staff:'Lara Khalid'},
-    ],note:'Prefers Aisha. Allergic to ammonia.'},
-    {id:2,name:'Mariam Jaber',phone:'+974 5598 7654',email:'mariam@email.com',points:120,visits:[
-      {date:'2026-04-08',service:'Gel Nails',amount:200,staff:'Lara Khalid'},
-    ],note:'VIP client.'},
-    {id:3,name:'Layla Mohammed',phone:'+974 5533 4422',email:'layla@email.com',points:310,visits:[
-      {date:'2026-04-14',service:'Massage',amount:300,staff:'Sara Hassan'},
-    ],note:'Gold member.'},
-  ],
-  inventory:[
-    {id:1,name:'Olaplex No.3',cat:'Treatment',stock:8,minStock:5,price:185,supplier:'Olaplex',isLiquid:true,volumeMl:100,currentMl:680,dailyUsageMl:22,openedDate:'2026-04-01'},
-    {id:2,name:'Loreal Color 6.0',cat:'Color',stock:3,minStock:10,price:45,supplier:'Loreal',isLiquid:true,volumeMl:60,currentMl:90,dailyUsageMl:15,openedDate:'2026-04-10'},
-    {id:3,name:'OPI Gel Base Coat',cat:'Nails',stock:12,minStock:5,price:65,supplier:'OPI',isLiquid:true,volumeMl:15,currentMl:155,dailyUsageMl:5,openedDate:'2026-03-20'},
-    {id:4,name:'Kerastase Shampoo',cat:'Haircare',stock:6,minStock:8,price:210,supplier:'Kerastase',isLiquid:true,volumeMl:250,currentMl:900,dailyUsageMl:40,openedDate:'2026-04-05'},
-    {id:5,name:'Wax Strips 100pk',cat:'Waxing',stock:4,minStock:10,price:35,supplier:'Depileve',isLiquid:false},
-    {id:6,name:'Facial Serum HA',cat:'Skincare',stock:5,minStock:3,price:290,supplier:'Medik8',isLiquid:true,volumeMl:30,currentMl:48,dailyUsageMl:3,openedDate:'2026-04-08'},
-  ],
-  purchases:[
-    {id:1,date:'2026-04-01',supplierId:1,supplier:'Olaplex',items:[{productId:1,name:'Olaplex No.3',qty:10,unitCost:140,total:1400}],grandTotal:1400,status:'received',invoiceNo:'INV-001',paid:1400,balance:0},
-    {id:2,date:'2026-04-08',supplierId:2,supplier:'Kerastase',items:[{productId:4,name:'Kerastase Shampoo',qty:6,unitCost:165,total:990}],grandTotal:990,status:'received',invoiceNo:'INV-002',paid:500,balance:490},
-    {id:3,date:'2026-04-12',supplierId:3,supplier:'Loreal',items:[{productId:2,name:'Loreal Color 6.0',qty:5,unitCost:30,total:150}],grandTotal:150,status:'pending',invoiceNo:'INV-003',paid:0,balance:150},
-  ],
-  suppliers:[
-    {id:1,name:'Olaplex',contact:'+974 4411 2200',email:'orders@olaplex.com',balance:0,totalPurchased:1400,notes:'Premium hair treatment supplier'},
-    {id:2,name:'Kerastase',contact:'+974 4422 3300',email:'orders@kerastase.com',balance:490,totalPurchased:990,notes:'Luxury haircare'},
-    {id:3,name:'Loreal',contact:'+974 4433 4400',email:'orders@loreal.com',balance:150,totalPurchased:150,notes:'Color products'},
-    {id:4,name:'OPI',contact:'+974 4444 5500',email:'orders@opi.com',balance:0,totalPurchased:780,notes:'Nail products'},
-    {id:5,name:'Depileve',contact:'+974 4455 6600',email:'orders@depileve.com',balance:0,totalPurchased:350,notes:'Wax supplies'},
-  ],
-  expenses:[
-    {id:1,date:'2026-04-15',category:'Rent',description:'Monthly salon rent',amount:8000,payment:'bank',recurring:true},
-    {id:2,date:'2026-04-15',category:'Utilities',description:'Electricity & water',amount:850,payment:'bank',recurring:true},
-    {id:3,date:'2026-04-14',category:'Supplies',description:'Towels and disposables',amount:320,payment:'cash',recurring:false},
-    {id:4,date:'2026-04-13',category:'Marketing',description:'Instagram promotion',amount:500,payment:'card',recurring:false},
-    {id:5,date:'2026-04-10',category:'Equipment',description:'New hair dryer',amount:1200,payment:'card',recurring:false},
-    {id:6,date:'2026-04-08',category:'Staff',description:'Bonus payment - Aisha',amount:400,payment:'cash',recurring:false},
-  ],
-  attendance:[
-    {id:1,staffId:1,staffName:'Aisha Rahman',date:'2026-04-15',checkIn:'09:05',checkOut:'18:30',status:'present',hoursWorked:9.4,notes:''},
-    {id:2,staffId:2,staffName:'Lara Khalid',date:'2026-04-15',checkIn:'09:15',checkOut:'17:45',status:'present',hoursWorked:8.5,notes:''},
-    {id:3,staffId:3,staffName:'Noura Al-Sayed',date:'2026-04-15',checkIn:'10:00',checkOut:'',status:'present',hoursWorked:0,notes:'Still in'},
-    {id:4,staffId:4,staffName:'Mia Chen',date:'2026-04-15',checkIn:'',checkOut:'',status:'absent',hoursWorked:0,notes:'Sick leave'},
-    {id:5,staffId:5,staffName:'Sara Hassan',date:'2026-04-15',checkIn:'09:30',checkOut:'16:00',status:'present',hoursWorked:6.5,notes:'Left early'},
-    {id:6,staffId:1,staffName:'Aisha Rahman',date:'2026-04-14',checkIn:'09:00',checkOut:'18:00',status:'present',hoursWorked:9,notes:''},
-    {id:7,staffId:2,staffName:'Lara Khalid',date:'2026-04-14',checkIn:'09:10',checkOut:'17:30',status:'present',hoursWorked:8.3,notes:''},
-    {id:8,staffId:3,staffName:'Noura Al-Sayed',date:'2026-04-14',checkIn:'',checkOut:'',status:'day-off',hoursWorked:0,notes:''},
-  ],
-  appointments:[
-    {id:1,customer:'Fatima Al-Dosari',service:'Hair Color',staff:'Aisha Rahman',date:'2026-04-15',slot:2,status:'inprogress',color:'#fef9c3',textColor:'#92400e'},
-    {id:2,customer:'Mariam Jaber',service:'Gel Nails',staff:'Lara Khalid',date:'2026-04-15',slot:3,status:'booked',color:'#dbeafe',textColor:'#1d4ed8'},
-    {id:3,customer:'Layla Mohammed',service:'Massage',staff:'Sara Hassan',date:'2026-04-16',slot:1,status:'booked',color:'#dbeafe',textColor:'#1d4ed8'},
-  ],
+  customers:[],
+  inventory:[],
+  purchases:[],
+  suppliers:[],
+  expenses:[],
+  attendance:[],
+  appointments:[],
+  sales:[],
+  appointments:[],
   sales:[
-    // SRP real sales will load from Supabase
-    // {id:1,date:'2026-04-15',customer:'Fatima',items:[{type:'service',service:'Haircut',price:120,cost:0,staff:'Aisha Rahman'},{type:'service',service:'Color',price:350,cost:30,staff:'Aisha Rahman'}],total:470,payment:'card'},
-    {id:2,date:'2026-04-15',customer:'Walk-in',items:[{type:'service',service:'Eyebrows',price:60,cost:0,staff:'Noura Al-Sayed'}],total:60,payment:'cash'},
-    {id:3,date:'2026-04-14',customer:'Layla',items:[{type:'service',service:'Massage',price:300,cost:0,staff:'Sara Hassan'}],total:300,payment:'card'},
-    {id:4,date:'2026-04-13',customer:'Mariam',items:[{type:'service',service:'Gel Nails',price:200,cost:65,staff:'Lara Khalid'}],total:200,payment:'cash'},
-    {id:5,date:'2026-04-12',customer:'Walk-in',items:[{type:'service',service:'Facial',price:250,cost:0,staff:'Noura Al-Sayed'}],total:250,payment:'card'},
-    {id:6,date:'2026-04-11',customer:'Fatima',items:[{type:'service',service:'Highlights',price:450,cost:30,staff:'Aisha Rahman'}],total:450,payment:'card'},
-    {id:7,date:'2026-04-10',customer:'Walk-in',items:[{type:'product',service:'Olaplex No.3',price:185,cost:140,staff:'Aisha Rahman',productId:1}],total:185,payment:'cash'},
-  ],
-  appointments:[
-    {id:1,customer:'Fatima Al-Dosari',service:'Hair Color',staff:'Aisha Rahman',date:'2026-04-15',slot:2,status:'inprogress',color:'#fef9c3',textColor:'#92400e'},
-    {id:2,customer:'Mariam Jaber',service:'Gel Nails',staff:'Lara Khalid',date:'2026-04-15',slot:3,status:'booked',color:'#dbeafe',textColor:'#1d4ed8'},
-    {id:3,customer:'Layla Mohammed',service:'Massage',staff:'Sara Hassan',date:'2026-04-16',slot:1,status:'booked',color:'#dbeafe',textColor:'#1d4ed8'},
-  ],
-  sales:[
-    // SRP real sales will load from Supabase
-    // {id:1,date:'2026-04-15',customer:'Fatima',items:[{type:'service',service:'Haircut',price:120,cost:0,staff:'Aisha Rahman'},{type:'service',service:'Color',price:350,cost:30,staff:'Aisha Rahman'}],total:470,payment:'card'},
     {id:2,date:'2026-04-15',customer:'Walk-in',items:[{type:'service',service:'Eyebrows',price:60,cost:0,staff:'Noura Al-Sayed'}],total:60,payment:'cash'},
     {id:3,date:'2026-04-14',customer:'Layla',items:[{type:'service',service:'Massage',price:300,cost:0,staff:'Sara Hassan'}],total:300,payment:'card'},
     {id:4,date:'2026-04-13',customer:'Mariam',items:[{type:'service',service:'Gel Nails',price:200,cost:65,staff:'Lara Khalid'}],total:200,payment:'cash'},
@@ -3796,8 +3733,9 @@ function showAddService(){
 }
 function saveService(){
   const nm=document.getElementById('ns-name').value.trim();if(!nm){showToast('Name required','warn');return;}
-  db.services.push({id:Date.now(),name:nm,cat:document.getElementById('ns-cat').value,price:parseInt(document.getElementById('ns-price').value)||0,duration:parseInt(document.getElementById('ns-dur').value)||30,icon:document.getElementById('ns-icon').value||'💅'});
-  saveDB();dbInsertService(svc);closeModal();renderAdminServices();showToast('Service added to POS!');
+  const newSvc={id:Date.now(),name:nm,cat:document.getElementById('ns-cat').value,price:parseInt(document.getElementById('ns-price').value)||0,duration:parseInt(document.getElementById('ns-dur').value)||30,icon:document.getElementById('ns-icon').value||'💅',sellPrice:parseInt(document.getElementById('ns-price').value)||0};
+  db.services.push(newSvc);
+  saveDB();dbInsertService(newSvc);closeModal();renderAdminServices();renderPOS();showToast('Service added to POS!');
 }
 function showEditService(id){
   const s=db.services.find(x=>String(x.id)===String(id));if(!s)return;
