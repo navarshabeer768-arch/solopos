@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="SoloPOS">
 <meta name="mobile-web-app-capable" content="yes">
-<title>SoloPOS — SRP Sports Recovery Point</title>
+<title>SoloPOS — Susan Beauty Salon</title>
 <meta name="theme-color" content="#e11d48">
 <link rel="manifest" href="manifest.json">
 <style>
@@ -315,7 +315,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
   <div class="login-box">
     <div class="login-logo">
       <div class="brand">✦ SoloPOS</div>
-      <div class="sub">SRP Sports Recovery Point</div>
+      <div class="sub">Susan Beauty Salon</div>
     </div>
     <div class="login-field">
       <label>Username</label>
@@ -337,7 +337,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
   <div class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="brand-mark">✦ SoloPOS</div>
-      <div class="brand-sub">SRP Sports Recovery Point</div>
+      <div class="brand-sub">Susan Beauty Salon</div>
     </div>
     <div class="nav-section" id="sidebar-nav"></div>
     <div class="sidebar-footer">
@@ -402,7 +402,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
           </div>
           <div class="pos-right">
             <select class="cust-sel" id="pos-cust"><option value="">Walk-in Customer</option></select>
-            <div class="bill-hdr">Current Bill — <span style="color:#94a3b8;font-weight:400;font-size:12px" id="srp-sports-lbl">SRP Sports Recovery Point</span></div>
+            <div class="bill-hdr">Current Bill — <span style="color:#94a3b8;font-weight:400;font-size:12px" id="salon-name-lbl">Susan Beauty Salon</span></div>
             <div class="bill-items" id="bill-items"></div>
             <div class="bill-totals">
               <div class="disc-row">
@@ -612,7 +612,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
         <div class="admin-section" id="admin-settings">
           <div class="card" style="max-width:480px">
             <div class="card-title">Salon Settings</div>
-            <div class="form-row"><label>Salon Name</label><input type="text" id="set-name" value="SRP Sports Recovery Point"></div>
+            <div class="form-row"><label>Salon Name</label><input type="text" id="set-name" value="Susan Beauty Salon"></div>
             <div class="form-row"><label>Currency</label><select id="set-currency"><option value="QAR" selected>QAR — Qatari Riyal</option><option value="AED">AED — UAE Dirham</option><option value="SAR">SAR — Saudi Riyal</option><option value="USD">USD — US Dollar</option></select></div>
             <div class="form-row"><label>Tax %</label><input type="number" id="set-tax" value="0" min="0" max="30"></div>
             <div class="form-row"><label>Loyalty Points per QAR 10</label><input type="number" id="set-pts" value="1" min="0"></div>
@@ -621,7 +621,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
           <div class="card" style="max-width:480px;margin-top:12px">
             <div class="card-title" style="color:#e11d48">Danger Zone</div>
             <p style="font-size:12px;color:#64748b;margin-bottom:10px">These actions cannot be undone.</p>
-            <button class="btn btn-danger btn-sm" onclick="if(confirm('Reset ALL data?')){localStorage.removeItem('srpsalon_data');location.reload()}">Reset All Data</button>
+            <button class="btn btn-danger btn-sm" onclick="if(confirm('Reset ALL data?')){localStorage.removeItem('susanbeauty_data');location.reload()}">Reset All Data</button>
           </div>
         </div>
 
@@ -1025,11 +1025,11 @@ async function dbInsertPurchase(pur) {
 }
 
 // ─── DATA (localStorage fallback) ────────────────────────────────
-const DB_KEY = 'srpsalon_data';
+const DB_KEY = 'susanbeauty_data';
 
 
 const seed = {
-  settings:{name:'SRP Sports Recovery Point',currency:'QAR',tax:0,pts:1},
+  settings:{name:'Susan Beauty Salon',currency:'QAR',tax:0,pts:1},
   categories:['Massage','VIP Massage'],
   services:[
     {id:1,name:'Traditional Javanese Massage',cat:'Massage',price:290,duration:60,icon:'🧖'},
@@ -2862,7 +2862,7 @@ let bookTab='overview';
 if(!db.bookingRequests) db.bookingRequests=[];
 if(!db.bookingSettings) db.bookingSettings={
   enabled:true,
-  salonName:db.settings?.name||'SRP Sports Recovery Point',
+  salonName:db.settings?.name||'Susan Beauty Salon',
   welcomeMsg:'Book your appointment online. We will confirm within 1 hour.',
   showPrices:true,
   requirePhone:true,
@@ -2885,7 +2885,7 @@ function setBookTab(t,el){
 
 function renderBookingAdmin(){
   if(!db.bookingRequests) db.bookingRequests=[];
-  if(!db.bookingSettings) db.bookingSettings={enabled:true,salonName:db.settings?.name||'SRP Sports Recovery Point',welcomeMsg:'Book your appointment online.',showPrices:true,requirePhone:true,requireEmail:false,autoConfirm:false,workingHours:{start:'09:00',end:'19:00'},offDays:[],confirmMsg:'Thank you! Your booking is received.',whatsapp:'',primaryColor:'#e11d48',accentColor:'#0d9488'};
+  if(!db.bookingSettings) db.bookingSettings={enabled:true,salonName:db.settings?.name||'Susan Beauty Salon',welcomeMsg:'Book your appointment online.',showPrices:true,requirePhone:true,requireEmail:false,autoConfirm:false,workingHours:{start:'09:00',end:'19:00'},offDays:[],confirmMsg:'Thank you! Your booking is received.',whatsapp:'',primaryColor:'#e11d48',accentColor:'#0d9488'};
   renderBookBody();
 }
 
@@ -3032,7 +3032,7 @@ function renderBookWidget(){
       </div>
       <div style="font-size:12px;color:#64748b;margin-bottom:12px">Share this link on WhatsApp, Instagram, or your website so customers can book online.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-sm" style="background:#25d366;color:white;border-color:#25d366" onclick="window.open('https://wa.me/?text=Book+your+appointment+at+${encodeURIComponent(bs.salonName||'SRP Sports Recovery Point')}:+${bookUrl}','_blank')">📲 Share on WhatsApp</button>
+        <button class="btn btn-sm" style="background:#25d366;color:white;border-color:#25d366" onclick="window.open('https://wa.me/?text=Book+your+appointment+at+${encodeURIComponent(bs.salonName||'Susan Beauty Salon')}:+${bookUrl}','_blank')">📲 Share on WhatsApp</button>
         <button class="btn btn-sm" onclick="previewBookingPage()">👁 Preview Page</button>
       </div>
     </div>
@@ -3302,8 +3302,8 @@ function whatsappBooking(id){
   const r=db.bookingRequests.find(x=>String(x.id)===String(id));if(!r||!r.phone)return;
   const bs=db.bookingSettings||{};
   const msg=r.status==='pending'
-    ?`Hello ${r.customerName}! Your booking request for ${r.service} on ${r.preferredDate} at ${r.preferredTime} has been received. We will confirm shortly. — ${bs.salonName||'SRP Sports Recovery Point'}`
-    :`Hello ${r.customerName}! Your appointment for ${r.service} on ${r.preferredDate} at ${r.preferredTime} is confirmed. See you soon! — ${bs.salonName||'SRP Sports Recovery Point'}`;
+    ?`Hello ${r.customerName}! Your booking request for ${r.service} on ${r.preferredDate} at ${r.preferredTime} has been received. We will confirm shortly. — ${bs.salonName||'Susan Beauty Salon'}`
+    :`Hello ${r.customerName}! Your appointment for ${r.service} on ${r.preferredDate} at ${r.preferredTime} is confirmed. See you soon! — ${bs.salonName||'Susan Beauty Salon'}`;
   window.open('https://wa.me/'+r.phone.replace(/\D/g,'')+`?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
@@ -3365,7 +3365,7 @@ function showBookingPage(){
   const services=db2.services||[];
   const staff=db2.staff||[];
   const c=bs.primaryColor||'#e11d48';
-  const salonName=bs.salonName||db2.settings?.name||'SRP Sports Recovery Point';
+  const salonName=bs.salonName||db2.settings?.name||'Susan Beauty Salon';
   // Build time slots
   const timeSlots=[];
   const start=parseInt((bs.workingHours?.start||'09:00').split(':')[0]);
@@ -3858,7 +3858,7 @@ function saveSettings(){
 function showInvoice(sale) {
   if (!sale) return;
   const cur = db.settings.currency;
-  const salonName = db.settings.name || 'SRP Sports Recovery Point';
+  const salonName = db.settings.name || 'Susan Beauty Salon';
   const receiptNo = sale.receiptNo || sale.id?.toString().slice(-8).toUpperCase() || Date.now().toString().slice(-8);
   const payIcon = {cash:'💵',card:'💳',split:'⚡',online:'📱'}[sale.payment]||'💳';
   const now = new Date();
@@ -3983,7 +3983,7 @@ function printInvoice(){
   const sale = window._lastSale;
   if (!sale) return;
   const cur = db.settings.currency;
-  const salonName = db.settings.name || 'SRP Sports Recovery Point';
+  const salonName = db.settings.name || 'Susan Beauty Salon';
   const receiptNo = sale.receiptNo || sale.id?.toString().slice(-8).toUpperCase();
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
@@ -3991,7 +3991,7 @@ function printInvoice(){
 
   const printWin = window.open('','_blank','width=400,height=700');
   printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Receipt - ${receiptNo}</title>
+  <title>SoloPOS — Susan Beauty Salon</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Courier New', monospace; font-size: 12px; color: #000; background: white; padding: 10px; max-width: 300px; margin: 0 auto; }
@@ -4046,7 +4046,7 @@ function shareInvoiceWhatsApp(){
   const sale = window._lastSale;
   if (!sale) return;
   const cur = db.settings.currency;
-  const salonName = db.settings.name || 'SRP Sports Recovery Point';
+  const salonName = db.settings.name || 'Susan Beauty Salon';
   const receiptNo = sale.id?.toString().slice(-8).toUpperCase();
   const items = (sale.items||[]).map(i=>`  • ${i.service}: ${cur} ${i.price}`).join('\n');
   const msg =
